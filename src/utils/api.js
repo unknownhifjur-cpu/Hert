@@ -1,7 +1,7 @@
 import axios from 'axios';
 
 const api = axios.create({
-  baseURL: 'https://unknownhifjur-hert-backend.vercel.app/api',
+  baseURL: 'https://hert-backend.onrender.com/api',
 });
 
 api.interceptors.request.use(
