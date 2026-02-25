@@ -12,10 +12,22 @@ const Feed = () => {
     fetchPhotos();
   }, []);
 
+  // Fisher-Yates shuffle function
+  const shuffleArray = (array) => {
+    const newArray = [...array];
+    for (let i = newArray.length - 1; i > 0; i--) {
+      const j = Math.floor(Math.random() * (i + 1));
+      [newArray[i], newArray[j]] = [newArray[j], newArray[i]];
+    }
+    return newArray;
+  };
+
   const fetchPhotos = async () => {
     try {
       const res = await api.get('/photos');
-      setPhotos(res.data);
+      // Shuffle photos for random order on each load
+      const shuffled = shuffleArray(res.data);
+      setPhotos(shuffled);
     } catch (err) {
       console.error('Error fetching photos:', err);
     } finally {
@@ -29,7 +41,6 @@ const Feed = () => {
     fetchPhotos();
   };
 
-  // Skeleton loader component (unchanged)
   const SkeletonCard = () => (
     <div className="bg-white rounded-xl shadow-sm border border-gray-100 overflow-hidden animate-pulse">
       <div className="p-4 flex items-center space-x-3">
@@ -67,7 +78,6 @@ const Feed = () => {
       <style>{animationStyles}</style>
       <div className="min-h-screen bg-gradient-to-b from-gray-50 to-white py-6">
         <div className="max-w-2xl mx-auto px-4">
-          {/* Enhanced Feed Header */}
           <header className="flex items-center justify-between mb-6">
             <div className="flex items-center space-x-4">
               <h1 className="text-4xl font-bold text-transparent bg-clip-text bg-gradient-to-r from-rose-500 to-rose-600">
@@ -106,7 +116,6 @@ const Feed = () => {
             </Link>
           </header>
 
-          {/* Feed Content */}
           {loading ? (
             <div className="space-y-6">
               <SkeletonCard />

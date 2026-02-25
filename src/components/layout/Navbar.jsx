@@ -1,143 +1,127 @@
-import React, { useContext, useState } from 'react';
-import { Link, useNavigate } from 'react-router-dom';
+import React, { useContext } from 'react';
+import { Link, useNavigate, useLocation } from 'react-router-dom';
 import { AuthContext } from '../../context/AuthContext';
+import { Home, Upload, User, LogOut } from 'lucide-react';
 
 const Navbar = () => {
   const { user, logout } = useContext(AuthContext);
   const navigate = useNavigate();
-  const [isMenuOpen, setIsMenuOpen] = useState(false);
+  const location = useLocation();
+
+  if (!user) return null;
 
   const handleLogout = () => {
     logout();
     navigate('/login');
   };
 
-  const toggleMenu = () => setIsMenuOpen(!isMenuOpen);
-  const closeMenu = () => setIsMenuOpen(false);
+  // Helper to check if a path is active
+  const isActive = (path) => {
+    if (path === '/') return location.pathname === '/';
+    return location.pathname.startsWith(path);
+  };
 
   return (
-    <nav className="bg-white shadow-sm border-b border-gray-200 sticky top-0 z-50">
-      <div className="container mx-auto px-4 py-3">
-        <div className="flex items-center justify-between">
-          {/* Logo */}
-          <Link to="/" className="text-2xl font-bold text-rose-600 hover:text-rose-700 transition" onClick={closeMenu}>
-            HeartLock
-          </Link>
+    <>
+      {/* Main navbar */}
+      <nav className="bg-white shadow-sm border-b border-gray-200 sticky top-0 z-50">
+        <div className="container mx-auto px-4 py-3">
+          <div className="flex items-center justify-between">
+            {/* Logo */}
+            <Link to="/" className="text-2xl font-bold text-rose-600 hover:text-rose-700 transition">
+              HeartLock
+            </Link>
 
-          {/* Desktop Navigation (hidden on mobile) */}
-          <div className="hidden md:flex items-center gap-6">
-            {user ? (
-              <>
-                <Link to="/" className="text-gray-700 hover:text-rose-600 transition font-medium">
-                  Home
-                </Link>
-                <Link to="/upload" className="text-gray-700 hover:text-rose-600 transition font-medium">
-                  Upload
-                </Link>
-                <Link to={`/profile/${user.username}`} className="text-gray-700 hover:text-rose-600 transition font-medium">
-                  Profile
-                </Link>
-                <span className="text-gray-600 text-sm">Welcome, {user.username}!</span>
-                <button
-                  onClick={handleLogout}
-                  className="bg-rose-500 hover:bg-rose-600 text-white px-4 py-2 rounded-lg text-sm font-medium transition"
-                >
-                  Logout
-                </button>
-              </>
-            ) : (
-              <>
-                <Link to="/login" className="text-gray-700 hover:text-rose-600 transition font-medium">
-                  Login
-                </Link>
-                <Link to="/register" className="bg-rose-500 hover:bg-rose-600 text-white px-4 py-2 rounded-lg text-sm font-medium transition">
-                  Register
-                </Link>
-              </>
-            )}
+            {/* Desktop Navigation */}
+            <div className="hidden md:flex items-center gap-6">
+              <Link
+                to="/"
+                className={`transition font-medium ${
+                  isActive('/')
+                    ? 'text-rose-600'
+                    : 'text-gray-700 hover:text-rose-600'
+                }`}
+              >
+                Home
+              </Link>
+              <Link
+                to="/upload"
+                className={`transition font-medium ${
+                  isActive('/upload')
+                    ? 'text-rose-600'
+                    : 'text-gray-700 hover:text-rose-600'
+                }`}
+              >
+                Upload
+              </Link>
+              <Link
+                to={`/profile/${user.username}`}
+                className={`transition font-medium ${
+                  isActive(`/profile/${user.username}`)
+                    ? 'text-rose-600'
+                    : 'text-gray-700 hover:text-rose-600'
+                }`}
+              >
+                Profile
+              </Link>
+              <span className="text-gray-600 text-sm">Welcome, {user.username}!</span>
+              <button
+                onClick={handleLogout}
+                className="bg-rose-500 hover:bg-rose-600 text-white px-4 py-2 rounded-lg text-sm font-medium transition"
+              >
+                Logout
+              </button>
+            </div>
+
+            {/* Mobile placeholder */}
+            <div className="md:hidden"></div>
           </div>
+        </div>
+      </nav>
 
-          {/* Mobile Hamburger Button */}
-          <button
-            onClick={toggleMenu}
-            className="md:hidden text-gray-600 hover:text-rose-600 focus:outline-none"
-            aria-label="Toggle menu"
+      {/* Bottom navigation for mobile */}
+      <div className="md:hidden fixed bottom-0 left-0 right-0 bg-white border-t border-gray-200 shadow-lg z-50">
+        <div className="flex justify-around items-center py-2">
+          <Link
+            to="/"
+            className={`flex flex-col items-center p-2 transition active:scale-95 ${
+              isActive('/') ? 'text-rose-600' : 'text-gray-600 hover:text-rose-600'
+            }`}
           >
-            <svg
-              className="w-6 h-6"
-              fill="none"
-              stroke="currentColor"
-              viewBox="0 0 24 24"
-              xmlns="http://www.w3.org/2000/svg"
-            >
-              {isMenuOpen ? (
-                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
-              ) : (
-                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 6h16M4 12h16M4 18h16" />
-              )}
-            </svg>
+            <Home className="w-6 h-6" />
+            <span className="text-xs mt-1">Home</span>
+          </Link>
+          <Link
+            to="/upload"
+            className={`flex flex-col items-center p-2 transition active:scale-95 ${
+              isActive('/upload') ? 'text-rose-600' : 'text-gray-600 hover:text-rose-600'
+            }`}
+          >
+            <Upload className="w-6 h-6" />
+            <span className="text-xs mt-1">Upload</span>
+          </Link>
+          <Link
+            to={`/profile/${user.username}`}
+            className={`flex flex-col items-center p-2 transition active:scale-95 ${
+              isActive(`/profile/${user.username}`) ? 'text-rose-600' : 'text-gray-600 hover:text-rose-600'
+            }`}
+          >
+            <User className="w-6 h-6" />
+            <span className="text-xs mt-1">Profile</span>
+          </Link>
+          <button
+            onClick={handleLogout}
+            className="flex flex-col items-center p-2 text-gray-600 hover:text-rose-600 transition active:scale-95"
+          >
+            <LogOut className="w-6 h-6" />
+            <span className="text-xs mt-1">Logout</span>
           </button>
         </div>
-
-        {/* Mobile Menu (dropdown) */}
-        {isMenuOpen && (
-          <div className="md:hidden mt-4 pb-2 space-y-2 border-t border-gray-100 pt-4">
-            {user ? (
-              <>
-                <Link
-                  to="/"
-                  className="block text-gray-700 hover:text-rose-600 transition font-medium py-2"
-                  onClick={closeMenu}
-                >
-                  Home
-                </Link>
-                <Link
-                  to="/upload"
-                  className="block text-gray-700 hover:text-rose-600 transition font-medium py-2"
-                  onClick={closeMenu}
-                >
-                  Upload
-                </Link>
-                <Link
-                  to={`/profile/${user.username}`}
-                  className="block text-gray-700 hover:text-rose-600 transition font-medium py-2"
-                  onClick={closeMenu}
-                >
-                  Profile
-                </Link>
-                <div className="py-2 text-gray-600 text-sm">Welcome, {user.username}!</div>
-                <button
-                  onClick={() => {
-                    handleLogout();
-                    closeMenu();
-                  }}
-                  className="w-full text-left bg-rose-500 hover:bg-rose-600 text-white px-4 py-2 rounded-lg text-sm font-medium transition"
-                >
-                  Logout
-                </button>
-              </>
-            ) : (
-              <>
-                <Link
-                  to="/login"
-                  className="block text-gray-700 hover:text-rose-600 transition font-medium py-2"
-                  onClick={closeMenu}
-                >
-                  Login
-                </Link>
-                <Link
-                  to="/register"
-                  className="block bg-rose-500 hover:bg-rose-600 text-white px-4 py-2 rounded-lg text-sm font-medium transition text-center"
-                  onClick={closeMenu}
-                >
-                  Register
-                </Link>
-              </>
-            )}
-          </div>
-        )}
       </div>
-    </nav>
+
+      {/* Spacer for mobile bottom nav */}
+      <div className="md:hidden h-0"></div>
+    </>
   );
 };
 
