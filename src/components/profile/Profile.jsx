@@ -1,25 +1,75 @@
-import React, { useState, useEffect } from 'react';
-import { useParams } from 'react-router-dom';
+import React, { useState, useEffect, useContext } from 'react';
+import { useParams, useNavigate } from 'react-router-dom';
+import { AuthContext } from '../../context/AuthContext';
 import api from '../../utils/api';
 
 const Profile = () => {
   const { username } = useParams();
+  const navigate = useNavigate();
+  const { user: currentUser } = useContext(AuthContext);
+  const [profileUser, setProfileUser] = useState(null);
   const [photos, setPhotos] = useState([]);
   const [loading, setLoading] = useState(true);
+  const [error, setError] = useState('');
+  const [followLoading, setFollowLoading] = useState(false);
+
+  // Normalize current user ID (could be _id or id)
+  const currentUserId = currentUser?._id || currentUser?.id;
 
   useEffect(() => {
-    const fetchUserPhotos = async () => {
-      try {
-        const res = await api.get(`/users/${username}/photos`);
-        setPhotos(res.data);
-      } catch (err) {
-        console.error('Error fetching photos:', err);
-      } finally {
-        setLoading(false);
-      }
-    };
-    fetchUserPhotos();
+    fetchProfileData();
   }, [username]);
+
+  const fetchProfileData = async () => {
+    try {
+      const [userRes, photosRes] = await Promise.all([
+        api.get(`/users/${username}`),
+        api.get(`/users/${username}/photos`)
+      ]);
+      setProfileUser(userRes.data);
+      setPhotos(photosRes.data);
+    } catch (err) {
+      console.error('Error fetching profile:', err);
+      setError('User not found');
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  const isOwnProfile = currentUser && currentUser.username === username;
+
+  const handleFollow = async () => {
+    if (!currentUser) return;
+    setFollowLoading(true);
+    try {
+      await api.post(`/users/${username}/follow`);
+      const res = await api.get(`/users/${username}`);
+      setProfileUser(res.data);
+    } catch (err) {
+      console.error('Follow error:', err);
+    } finally {
+      setFollowLoading(false);
+    }
+  };
+
+  const handleUnfollow = async () => {
+    if (!currentUser) return;
+    setFollowLoading(true);
+    try {
+      await api.post(`/users/${username}/unfollow`);
+      const res = await api.get(`/users/${username}`);
+      setProfileUser(res.data);
+    } catch (err) {
+      console.error('Unfollow error:', err);
+    } finally {
+      setFollowLoading(false);
+    }
+  };
+
+  // Check if current user is in the followers array
+  const isFollowing = profileUser?.followers?.some(
+    follower => follower._id?.toString() === currentUserId?.toString()
+  );
 
   if (loading) {
     return (
@@ -29,20 +79,87 @@ const Profile = () => {
     );
   }
 
+  if (error || !profileUser) {
+    return (
+      <div className="min-h-screen bg-gray-50 flex items-center justify-center">
+        <p className="text-gray-500">{error || 'User not found'}</p>
+      </div>
+    );
+  }
+
   return (
     <div className="min-h-screen bg-gray-50 py-8">
       <div className="max-w-4xl mx-auto px-4">
-        {/* Profile header */}
-        <div className="bg-white rounded-xl shadow-sm border border-gray-100 p-6 mb-8 flex items-center space-x-6">
-          <div className="h-20 w-20 rounded-full bg-rose-100 flex items-center justify-center text-rose-600 text-3xl font-bold">
-            {username?.charAt(0).toUpperCase()}
+        {/* Profile Header */}
+        <div className="bg-white rounded-xl shadow-sm border border-gray-100 p-6 mb-8">
+          <div className="flex flex-col md:flex-row items-start md:items-center gap-6">
+            {/* Avatar */}
+            <div className="h-20 w-20 rounded-full bg-rose-100 flex items-center justify-center text-rose-600 text-3xl font-bold overflow-hidden">
+              {profileUser.profilePic ? (
+                <img
+                  src={profileUser.profilePic}
+                  alt={profileUser.username}
+                  className="w-full h-full object-cover"
+                />
+              ) : (
+                profileUser.username?.charAt(0).toUpperCase()
+              )}
+            </div>
+
+            {/* User Info */}
+            <div className="flex-1">
+              <h1 className="text-2xl font-bold text-gray-800 mb-2">{profileUser.username}</h1>
+              {profileUser.bio && <p className="text-gray-600 mb-3">{profileUser.bio}</p>}
+
+              {/* Stats Row */}
+              <div className="flex space-x-6 text-sm">
+                <div>
+                  <span className="font-semibold text-gray-800">{photos.length}</span>{' '}
+                  <span className="text-gray-500">posts</span>
+                </div>
+                <div>
+                  <span className="font-semibold text-gray-800">
+                    {profileUser.followers?.length || 0}
+                  </span>{' '}
+                  <span className="text-gray-500">followers</span>
+                </div>
+                <div>
+                  <span className="font-semibold text-gray-800">
+                    {profileUser.following?.length || 0}
+                  </span>{' '}
+                  <span className="text-gray-500">following</span>
+                </div>
+              </div>
+            </div>
+
+            {/* Action Button */}
+            {isOwnProfile ? (
+              <button
+                onClick={() => navigate(`/profile/${username}/edit`)}
+                className="mt-4 md:mt-0 bg-rose-500 hover:bg-rose-600 text-white px-6 py-2 rounded-lg text-sm font-medium transition"
+              >
+                Edit Profile
+              </button>
+            ) : currentUser ? (
+              <button
+                onClick={isFollowing ? handleUnfollow : handleFollow}
+                disabled={followLoading}
+                className={`mt-4 md:mt-0 px-6 py-2 rounded-lg text-sm font-medium transition ${
+                  isFollowing
+                    ? 'bg-gray-200 text-gray-800 hover:bg-gray-300'
+                    : 'bg-rose-500 hover:bg-rose-600 text-white'
+                }`}
+              >
+                {followLoading ? '...' : isFollowing ? 'Unfollow' : 'Follow'}
+              </button>
+            ) : null}
           </div>
-          <h1 className="text-2xl font-bold text-gray-800">{username}</h1>
         </div>
 
-        {/* Photo grid */}
+        {/* Photo Grid */}
+        <h2 className="text-xl font-semibold text-gray-800 mb-4">Photos</h2>
         {photos.length === 0 ? (
-          <div className="text-center py-20 bg-white rounded-xl shadow-sm border border-gray-100">
+          <div className="text-center py-16 bg-white rounded-xl shadow-sm border border-gray-100">
             <p className="text-gray-500">No photos yet.</p>
           </div>
         ) : (
@@ -50,7 +167,8 @@ const Profile = () => {
             {photos.map(photo => (
               <div
                 key={photo._id}
-                className="relative aspect-square group overflow-hidden rounded-lg border border-gray-200 hover:border-rose-300 transition"
+                className="relative aspect-square group overflow-hidden rounded-lg border border-gray-200 hover:border-rose-300 transition cursor-pointer"
+                onClick={() => navigate(`/photo/${photo._id}`)}
               >
                 <img
                   src={photo.imageUrl}
