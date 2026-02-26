@@ -7,6 +7,7 @@ import Feed from './components/feed/Feed';
 import Upload from './components/upload/Upload';
 import Navbar from './components/layout/Navbar';
 import Profile from './components/profile/Profile';
+import EditProfile from './components/profile/EditProfile';
 
 function AppRoutes() {
   const { user, loading } = useContext(AuthContext);
@@ -17,11 +18,20 @@ function AppRoutes() {
     <>
       <Navbar />
       <Routes>
+        {/* Public routes */}
         <Route path="/login" element={!user ? <Login /> : <Navigate to="/" />} />
         <Route path="/register" element={!user ? <Register /> : <Navigate to="/" />} />
+
+        {/* Protected routes */}
         <Route path="/" element={user ? <Feed /> : <Navigate to="/login" />} />
         <Route path="/upload" element={user ? <Upload /> : <Navigate to="/login" />} />
+        
+        {/* Profile routes – edit is more specific so it should take precedence */}
+        <Route path="/profile/:username/edit" element={user ? <EditProfile /> : <Navigate to="/login" />} />
         <Route path="/profile/:username" element={user ? <Profile /> : <Navigate to="/login" />} />
+
+        {/* fallback for unmatched paths to avoid "No routes matched" errors */}
+        <Route path="*" element={<Navigate to={user ? "/" : "/login"} />} />
       </Routes>
     </>
   );
