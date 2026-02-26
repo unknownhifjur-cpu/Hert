@@ -1,7 +1,8 @@
 import React, { useState, useEffect, useContext } from 'react';
-import { useParams, useNavigate } from 'react-router-dom';
+import { useParams, useNavigate, Link } from 'react-router-dom';
 import { AuthContext } from '../../context/AuthContext';
 import api from '../../utils/api';
+import { X } from 'lucide-react';
 
 const Profile = () => {
   const { username } = useParams();
@@ -13,7 +14,12 @@ const Profile = () => {
   const [error, setError] = useState('');
   const [followLoading, setFollowLoading] = useState(false);
 
-  // Normalize current user ID (could be _id or id)
+  // Modal state
+  const [modalOpen, setModalOpen] = useState(false);
+  const [modalType, setModalType] = useState(''); // 'followers' or 'following'
+  const [modalList, setModalList] = useState([]);
+  const [modalLoading, setModalLoading] = useState(false);
+
   const currentUserId = currentUser?._id || currentUser?.id;
 
   useEffect(() => {
@@ -66,10 +72,30 @@ const Profile = () => {
     }
   };
 
-  // Check if current user is in the followers array
   const isFollowing = profileUser?.followers?.some(
     follower => follower._id?.toString() === currentUserId?.toString()
   );
+
+  // Open modal and fetch list
+  const openModal = async (type) => {
+    setModalType(type);
+    setModalOpen(true);
+    setModalLoading(true);
+    try {
+      const res = await api.get(`/users/${username}/${type}`);
+      setModalList(res.data);
+    } catch (err) {
+      console.error(`Error fetching ${type}:`, err);
+    } finally {
+      setModalLoading(false);
+    }
+  };
+
+  const closeModal = () => {
+    setModalOpen(false);
+    setModalList([]);
+    setModalType('');
+  };
 
   if (loading) {
     return (
@@ -111,24 +137,30 @@ const Profile = () => {
               <h1 className="text-2xl font-bold text-gray-800 mb-2">{profileUser.username}</h1>
               {profileUser.bio && <p className="text-gray-600 mb-3">{profileUser.bio}</p>}
 
-              {/* Stats Row */}
+              {/* Stats Row – clickable */}
               <div className="flex space-x-6 text-sm">
                 <div>
                   <span className="font-semibold text-gray-800">{photos.length}</span>{' '}
                   <span className="text-gray-500">posts</span>
                 </div>
-                <div>
+                <button
+                  onClick={() => openModal('followers')}
+                  className="hover:text-rose-600 transition"
+                >
                   <span className="font-semibold text-gray-800">
                     {profileUser.followers?.length || 0}
                   </span>{' '}
                   <span className="text-gray-500">followers</span>
-                </div>
-                <div>
+                </button>
+                <button
+                  onClick={() => openModal('following')}
+                  className="hover:text-rose-600 transition"
+                >
                   <span className="font-semibold text-gray-800">
                     {profileUser.following?.length || 0}
                   </span>{' '}
                   <span className="text-gray-500">following</span>
-                </div>
+                </button>
               </div>
             </div>
 
@@ -175,7 +207,6 @@ const Profile = () => {
                   alt={photo.caption || 'User photo'}
                   className="w-full h-full object-cover"
                 />
-                {/* Hover overlay */}
                 <div className="absolute inset-0 bg-black bg-opacity-50 opacity-0 group-hover:opacity-100 transition flex items-center justify-center text-white space-x-4">
                   <span className="flex items-center space-x-1">
                     <span>❤️</span>
@@ -188,6 +219,48 @@ const Profile = () => {
                 </div>
               </div>
             ))}
+          </div>
+        )}
+
+        {/* Followers/Following Modal */}
+        {modalOpen && (
+          <div className="fixed inset-0 bg-black bg-opacity-50 z-50 flex items-center justify-center p-4">
+            <div className="bg-white rounded-2xl w-full max-w-md max-h-[70vh] overflow-hidden">
+              <div className="p-4 border-b border-gray-100 flex items-center justify-between">
+                <h3 className="text-lg font-semibold text-gray-800">
+                  {modalType === 'followers' ? 'Followers' : 'Following'}
+                </h3>
+                <button onClick={closeModal} className="text-gray-500 hover:text-gray-700">
+                  <X className="w-5 h-5" />
+                </button>
+              </div>
+              <div className="p-4 overflow-y-auto max-h-[60vh]">
+                {modalLoading ? (
+                  <div className="flex justify-center py-8">
+                    <div className="inline-block h-6 w-6 animate-spin rounded-full border-2 border-solid border-rose-500 border-r-transparent"></div>
+                  </div>
+                ) : modalList.length === 0 ? (
+                  <p className="text-center text-gray-400 py-8">No {modalType} yet.</p>
+                ) : (
+                  <ul className="space-y-2">
+                    {modalList.map(user => (
+                      <li key={user._id}>
+                        <Link
+                          to={`/profile/${user.username}`}
+                          onClick={closeModal}
+                          className="flex items-center space-x-3 p-2 rounded-lg hover:bg-rose-50 transition"
+                        >
+                          <div className="h-8 w-8 rounded-full bg-rose-100 flex items-center justify-center text-rose-600 font-semibold text-sm">
+                            {user.username.charAt(0).toUpperCase()}
+                          </div>
+                          <span className="text-gray-700">{user.username}</span>
+                        </Link>
+                      </li>
+                    ))}
+                  </ul>
+                )}
+              </div>
+            </div>
           </div>
         )}
       </div>
