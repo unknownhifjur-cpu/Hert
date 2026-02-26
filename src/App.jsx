@@ -8,7 +8,8 @@ import Upload from './components/upload/Upload';
 import Navbar from './components/layout/Navbar';
 import Profile from './components/profile/Profile';
 import EditProfile from './components/profile/EditProfile';
-import PhotoDetail from './components/photo/PhotoDetail'; // <-- import the new component
+import PhotoDetail from './components/photo/PhotoDetail';
+import Settings from './components/settings/Settings'; // <-- import Settings
 
 function AppRoutes() {
   const { user, loading } = useContext(AuthContext);
@@ -26,6 +27,7 @@ function AppRoutes() {
         {/* Protected routes */}
         <Route path="/" element={user ? <Feed /> : <Navigate to="/login" />} />
         <Route path="/upload" element={user ? <Upload /> : <Navigate to="/login" />} />
+        <Route path="/settings" element={user ? <Settings /> : <Navigate to="/login" />} />
         
         {/* Profile routes – edit is more specific so it should take precedence */}
         <Route path="/profile/:username/edit" element={user ? <EditProfile /> : <Navigate to="/login" />} />

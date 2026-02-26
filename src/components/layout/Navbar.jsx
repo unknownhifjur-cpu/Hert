@@ -1,7 +1,7 @@
 import React, { useContext, useState, useEffect, useRef } from 'react';
 import { Link, useNavigate, useLocation } from 'react-router-dom';
 import { AuthContext } from '../../context/AuthContext';
-import { Home, Upload, User, Search, X, Bell } from 'lucide-react';
+import { Home, Upload, User, Search, X, Bell, Settings } from 'lucide-react';
 import api from '../../utils/api';
 
 const Navbar = () => {
@@ -14,6 +14,8 @@ const Navbar = () => {
   const [searching, setSearching] = useState(false);
   const [mobileSearchOpen, setMobileSearchOpen] = useState(false);
   const [notificationsOpen, setNotificationsOpen] = useState(false);
+  const [showBottomNav, setShowBottomNav] = useState(true);
+  const lastScrollY = useRef(0);
   const searchRef = useRef(null);
   const mobileInputRef = useRef(null);
   const notificationRef = useRef(null);
@@ -24,6 +26,15 @@ const Navbar = () => {
   const isActive = (path) => {
     if (path === '/') return location.pathname === '/';
     return location.pathname.startsWith(path);
+  };
+
+  // Check if current page is the user's own profile (including edit)
+  const isOwnProfilePage = () => {
+    const path = location.pathname;
+    if (!path.startsWith('/profile/')) return false;
+    const segments = path.split('/');
+    const profileUsername = segments[2]; // after /profile/
+    return profileUsername === user.username;
   };
 
   // Click outside search dropdown
@@ -77,6 +88,21 @@ const Navbar = () => {
     }, 300);
   }, [searchQuery]);
 
+  // Hide bottom nav on scroll down, show on scroll up
+  useEffect(() => {
+    const handleScroll = () => {
+      const currentScrollY = window.scrollY;
+      if (currentScrollY > lastScrollY.current && currentScrollY > 50) {
+        setShowBottomNav(false);
+      } else if (currentScrollY < lastScrollY.current) {
+        setShowBottomNav(true);
+      }
+      lastScrollY.current = currentScrollY;
+    };
+    window.addEventListener('scroll', handleScroll, { passive: true });
+    return () => window.removeEventListener('scroll', handleScroll);
+  }, []);
+
   const clearSearch = () => {
     setSearchQuery('');
     setSearchResults([]);
@@ -100,6 +126,10 @@ const Navbar = () => {
     if (mobileSearchOpen) setMobileSearchOpen(false);
   };
 
+  const goToSettings = () => {
+    navigate('/settings');
+  };
+
   // Dummy notifications
   const notifications = [
     { id: 1, text: 'John Doe liked your photo', time: '2 min ago' },
@@ -109,7 +139,7 @@ const Navbar = () => {
 
   return (
     <>
-      {/* Main navbar */}
+      {/* Main navbar (sticky top) */}
       <nav className="bg-white shadow-sm border-b border-gray-200 sticky top-0 z-50">
         <div className="container mx-auto px-4 py-3">
           <div className="flex items-center justify-between">
@@ -174,34 +204,54 @@ const Navbar = () => {
                 Profile
               </Link>
               <span className="text-gray-600 text-sm">Welcome, {user.username}!</span>
-              {/* Desktop notification bell (optional) – you can remove if not needed */}
-              <button
-                onClick={toggleNotifications}
-                className="relative p-2 text-gray-600 hover:text-rose-600 transition"
-              >
-                <Bell className="w-5 h-5" />
-                {notifications.length > 0 && (
-                  <span className="absolute top-1 right-1 w-2 h-2 bg-rose-500 rounded-full"></span>
-                )}
-              </button>
-              {/* Logout removed – will be on profile page */}
-            </div>
-
-            {/* Mobile: notification bell (replaces logout) */}
-            <div className="md:hidden flex items-center">
-              <div className="relative" ref={notificationRef}>
+              
+              {/* Conditionally show settings on own profile, otherwise notifications */}
+              {isOwnProfilePage() ? (
+                <button
+                  onClick={goToSettings}
+                  className="p-2 text-gray-600 hover:text-rose-600 transition"
+                  aria-label="Settings"
+                >
+                  <Settings className="w-5 h-5" />
+                </button>
+              ) : (
                 <button
                   onClick={toggleNotifications}
-                  className="p-2 text-gray-600 hover:text-rose-600 transition"
-                  aria-label="Notifications"
+                  className="relative p-2 text-gray-600 hover:text-rose-600 transition"
                 >
-                  <Bell className="w-6 h-6" />
+                  <Bell className="w-5 h-5" />
                   {notifications.length > 0 && (
-                    <span className="absolute top-1 right-1 w-2.5 h-2.5 bg-rose-500 rounded-full"></span>
+                    <span className="absolute top-1 right-1 w-2 h-2 bg-rose-500 rounded-full"></span>
                   )}
                 </button>
-                {/* Notification dropdown */}
-                {notificationsOpen && (
+              )}
+            </div>
+
+            {/* Mobile: right‑side icon (notification or settings) */}
+            <div className="md:hidden flex items-center">
+              <div className="relative" ref={notificationRef}>
+                {isOwnProfilePage() ? (
+                  <button
+                    onClick={goToSettings}
+                    className="p-2 text-gray-600 hover:text-rose-600 transition"
+                    aria-label="Settings"
+                  >
+                    <Settings className="w-6 h-6" />
+                  </button>
+                ) : (
+                  <button
+                    onClick={toggleNotifications}
+                    className="p-2 text-gray-600 hover:text-rose-600 transition"
+                    aria-label="Notifications"
+                  >
+                    <Bell className="w-6 h-6" />
+                    {notifications.length > 0 && (
+                      <span className="absolute top-1 right-1 w-2.5 h-2.5 bg-rose-500 rounded-full"></span>
+                    )}
+                  </button>
+                )}
+                {/* Notification dropdown (only shown when not on own profile) */}
+                {notificationsOpen && !isOwnProfilePage() && (
                   <div className="absolute right-0 mt-2 w-64 bg-white rounded-xl shadow-lg border border-gray-100 overflow-hidden z-50">
                     <div className="p-3 border-b border-gray-100 font-semibold text-gray-700">Notifications</div>
                     <div className="max-h-60 overflow-y-auto">
@@ -271,8 +321,12 @@ const Navbar = () => {
         </div>
       </nav>
 
-      {/* Bottom navigation for mobile */}
-      <div className="md:hidden fixed bottom-0 left-0 right-0 bg-white border-t border-gray-200 shadow-lg z-50">
+      {/* Bottom navigation for mobile – hide/show on scroll */}
+      <div
+        className={`md:hidden fixed bottom-0 left-0 right-0 bg-white border-t border-gray-200 shadow-lg z-50 transform transition-transform duration-300 ${
+          showBottomNav ? 'translate-y-0' : 'translate-y-full'
+        }`}
+      >
         <div className="flex justify-around items-center py-2">
           <Link to="/" className="flex flex-col items-center p-2 text-gray-600 hover:text-rose-600 transition">
             <Home className="w-6 h-6" />
