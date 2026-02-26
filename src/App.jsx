@@ -11,27 +11,58 @@ import Profile from './components/profile/Profile';
 import EditProfile from './components/profile/EditProfile';
 import PhotoDetail from './components/photo/PhotoDetail';
 import Settings from './components/settings/Settings';
+import { useEffect, useState } from "react";
 
 function AppRoutes() {
   const { user, loading } = useContext(AuthContext);
 
-  if (loading) {
-    return (
-      <div className="min-h-screen bg-gradient-to-b from-gray-50 to-white flex items-center justify-center">
-        <div className="text-center">
-          {/* Animated spinner with heart icon */}
-          <div className="relative inline-block">
-            <div className="h-16 w-16 animate-spin rounded-full border-4 border-solid border-rose-200 border-t-rose-500 mb-6"></div>
-            <Heart className="absolute top-1/2 left-1/2 transform -translate-x-1/2 -translate-y-1/2 w-6 h-6 text-rose-500 animate-pulse" />
-          </div>
-          {/* Animated loading text */}
-          <p className="text-xl font-medium text-gray-700 animate-pulse">HeartLock is loading...</p>
-          <p className="text-sm text-gray-400 mt-2">Please wait</p>
-        </div>
-      </div>
-    );
-  }
 
+if (loading) {
+  return <PremiumLoader />;
+}
+
+function PremiumLoader() {
+  const [visible, setVisible] = useState(false);
+
+  useEffect(() => {
+    const timeout = setTimeout(() => setVisible(true), 50);
+    return () => clearTimeout(timeout);
+  }, []);
+
+  return (
+    <div
+      className={`fixed inset-0 flex items-center justify-center bg-white transition-opacity duration-500 ${
+        visible ? "opacity-100" : "opacity-0"
+      }`}
+    >
+      <div className="flex flex-col items-center space-y-8">
+
+        {/* Loader */}
+        <div className="relative flex items-center justify-center">
+
+          {/* Soft Glow */}
+          <div className="absolute w-32 h-32 bg-rose-100 rounded-full blur-3xl opacity-40"></div>
+
+          {/* Rotating Gradient Ring */}
+          <div className="loader-ring w-24 h-24 rounded-full"></div>
+
+          {/* Logo */}
+          <img
+            src="/favicon.png"
+            alt="HeartLock Logo"
+            className="absolute w-10 h-10 object-contain animate-logoPulse"
+          />
+        </div>
+
+        {/* Text */}
+        <p className="text-sm text-gray-500 tracking-wide">
+          Preparing your secure space...
+        </p>
+
+      </div>
+    </div>
+  );
+}
   return (
     <>
       <Navbar />
