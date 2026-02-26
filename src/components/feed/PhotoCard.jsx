@@ -1,18 +1,14 @@
 import React, { useState, useContext } from 'react';
 import { Link } from 'react-router-dom';
-import { Heart, MessageCircle, Send } from 'lucide-react';
+import { Heart, MessageCircle, Send, Download, Share2 } from 'lucide-react';
 import { AuthContext } from '../../context/AuthContext';
 import api from '../../utils/api';
 
 const PhotoCard = ({ photo }) => {
   const { user } = useContext(AuthContext);
-  console.log('PhotoCard rendered with photo:', photo);
-
   const currentUserId = user?._id || user?.id;
-  console.log('Current user ID:', currentUserId);
 
   const initiallyLiked = photo.likes?.some(id => id.toString() === currentUserId?.toString()) || false;
-  console.log('Initially liked:', initiallyLiked);
 
   const [likes, setLikes] = useState(photo.likes?.length || 0);
   const [liked, setLiked] = useState(initiallyLiked);
@@ -20,51 +16,57 @@ const PhotoCard = ({ photo }) => {
   const [showComments, setShowComments] = useState(false);
   const [newComment, setNewComment] = useState('');
   const [submitting, setSubmitting] = useState(false);
+  const [copied, setCopied] = useState(false);
 
   const handleLike = async () => {
-    console.log('✅ Like button clicked');
-    console.log('Photo ID:', photo._id);
-    if (!photo._id) {
-      console.error('❌ photo._id is undefined!');
-      return;
-    }
     try {
-      console.log('Sending POST to:', `/photos/${photo._id}/like`);
       const res = await api.post(`/photos/${photo._id}/like`);
-      console.log('Like response:', res.data);
       setLikes(res.data.likes);
       setLiked(res.data.liked);
     } catch (err) {
-      console.error('❌ Like error:', err);
-      if (err.response) {
-        console.error('Status:', err.response.status);
-        console.error('Data:', err.response.data);
-      }
+      console.error('Like error:', err);
     }
   };
 
   const handleCommentSubmit = async (e) => {
     e.preventDefault();
-    console.log('✅ Comment submit triggered');
-    if (!newComment.trim()) {
-      console.log('Comment empty – not submitting');
-      return;
-    }
+    if (!newComment.trim()) return;
     setSubmitting(true);
     try {
-      console.log('Sending comment:', newComment);
       const res = await api.post(`/photos/${photo._id}/comment`, { text: newComment });
-      console.log('Comment response:', res.data);
       setComments([...comments, res.data]);
       setNewComment('');
     } catch (err) {
-      console.error('❌ Comment error:', err);
-      if (err.response) {
-        console.error('Status:', err.response.status);
-        console.error('Data:', err.response.data);
-      }
+      console.error('Comment error:', err);
     } finally {
       setSubmitting(false);
+    }
+  };
+
+  const handleDownload = () => {
+    const link = document.createElement('a');
+    link.href = photo.imageUrl;
+    link.download = 'photo.jpg';
+    document.body.appendChild(link);
+    link.click();
+    document.body.removeChild(link);
+  };
+
+  const handleShare = async () => {
+    if (navigator.share) {
+      try {
+        await navigator.share({
+          title: photo.caption || 'Check this photo!',
+          url: photo.imageUrl,
+        });
+      } catch (err) {
+        console.log('Share cancelled', err);
+      }
+    } else {
+      // Fallback: copy to clipboard
+      await navigator.clipboard.writeText(photo.imageUrl);
+      setCopied(true);
+      setTimeout(() => setCopied(false), 2000);
     }
   };
 
@@ -114,10 +116,7 @@ const PhotoCard = ({ photo }) => {
           </button>
 
           <button
-            onClick={() => {
-              console.log('Toggle comments');
-              setShowComments(!showComments);
-            }}
+            onClick={() => setShowComments(!showComments)}
             className="flex items-center space-x-1 px-3 py-1.5 rounded-full bg-gray-100 hover:bg-gray-200 transition group"
           >
             <MessageCircle className="w-5 h-5 text-gray-500 group-hover:scale-110 transition-transform" />
@@ -125,6 +124,31 @@ const PhotoCard = ({ photo }) => {
               {comments.length} {comments.length === 1 ? 'comment' : 'comments'}
             </span>
           </button>
+
+          {/* Download button */}
+          <button
+            onClick={handleDownload}
+            className="p-2 rounded-full bg-gray-100 hover:bg-gray-200 transition group"
+            title="Download"
+          >
+            <Download className="w-5 h-5 text-gray-500 group-hover:scale-110 transition-transform" />
+          </button>
+
+          {/* Share button */}
+          <div className="relative">
+            <button
+              onClick={handleShare}
+              className="p-2 rounded-full bg-gray-100 hover:bg-gray-200 transition group"
+              title="Share"
+            >
+              <Share2 className="w-5 h-5 text-gray-500 group-hover:scale-110 transition-transform" />
+            </button>
+            {copied && (
+              <span className="absolute -top-8 left-1/2 transform -translate-x-1/2 bg-black text-white text-xs px-2 py-1 rounded whitespace-nowrap">
+                Copied!
+              </span>
+            )}
+          </div>
         </div>
 
         {/* Comments section */}
