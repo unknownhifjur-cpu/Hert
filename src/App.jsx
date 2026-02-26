@@ -8,6 +8,7 @@ import Upload from './components/upload/Upload';
 import Navbar from './components/layout/Navbar';
 import Profile from './components/profile/Profile';
 import EditProfile from './components/profile/EditProfile';
+import PhotoDetail from './components/photo/PhotoDetail'; // <-- import the new component
 
 function AppRoutes() {
   const { user, loading } = useContext(AuthContext);
@@ -30,7 +31,10 @@ function AppRoutes() {
         <Route path="/profile/:username/edit" element={user ? <EditProfile /> : <Navigate to="/login" />} />
         <Route path="/profile/:username" element={user ? <Profile /> : <Navigate to="/login" />} />
 
-        {/* fallback for unmatched paths to avoid "No routes matched" errors */}
+        {/* Photo detail route – protected */}
+        <Route path="/photo/:id" element={user ? <PhotoDetail /> : <Navigate to="/login" />} />
+
+        {/* fallback for unmatched paths */}
         <Route path="*" element={<Navigate to={user ? "/" : "/login"} />} />
       </Routes>
     </>
