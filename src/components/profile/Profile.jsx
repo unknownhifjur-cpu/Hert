@@ -2,12 +2,12 @@ import React, { useState, useEffect, useContext } from 'react';
 import { useParams, useNavigate, Link } from 'react-router-dom';
 import { AuthContext } from '../../context/AuthContext';
 import api from '../../utils/api';
-import { X } from 'lucide-react';
+import { X, LogOut } from 'lucide-react';
 
 const Profile = () => {
   const { username } = useParams();
   const navigate = useNavigate();
-  const { user: currentUser } = useContext(AuthContext);
+  const { user: currentUser, logout } = useContext(AuthContext);
   const [profileUser, setProfileUser] = useState(null);
   const [photos, setPhotos] = useState([]);
   const [loading, setLoading] = useState(true);
@@ -76,7 +76,11 @@ const Profile = () => {
     follower => follower._id?.toString() === currentUserId?.toString()
   );
 
-  // Open modal and fetch list
+  const handleLogout = () => {
+    logout();
+    navigate('/login');
+  };
+
   const openModal = async (type) => {
     setModalType(type);
     setModalOpen(true);
@@ -114,13 +118,13 @@ const Profile = () => {
   }
 
   return (
-    <div className="min-h-screen bg-gray-50 py-8">
+    <div className="min-h-screen bg-gray-50 pb-20 md:pb-8 pt-4 md:pt-8">
       <div className="max-w-4xl mx-auto px-4">
         {/* Profile Header */}
-        <div className="bg-white rounded-xl shadow-sm border border-gray-100 p-6 mb-8">
-          <div className="flex flex-col md:flex-row items-start md:items-center gap-6">
-            {/* Avatar */}
-            <div className="h-20 w-20 rounded-full bg-rose-100 flex items-center justify-center text-rose-600 text-3xl font-bold overflow-hidden">
+        <div className="bg-white rounded-xl shadow-sm border border-gray-100 p-4 md:p-6 mb-6 md:mb-8">
+          <div className="flex flex-col md:flex-row items-start md:items-center gap-4 md:gap-6">
+            {/* Avatar – smaller on mobile */}
+            <div className="h-16 w-16 md:h-20 md:w-20 rounded-full bg-rose-100 flex items-center justify-center text-rose-600 text-2xl md:text-3xl font-bold overflow-hidden flex-shrink-0">
               {profileUser.profilePic ? (
                 <img
                   src={profileUser.profilePic}
@@ -133,12 +137,14 @@ const Profile = () => {
             </div>
 
             {/* User Info */}
-            <div className="flex-1">
-              <h1 className="text-2xl font-bold text-gray-800 mb-2">{profileUser.username}</h1>
-              {profileUser.bio && <p className="text-gray-600 mb-3">{profileUser.bio}</p>}
+            <div className="flex-1 w-full md:w-auto">
+              <h1 className="text-xl md:text-2xl font-bold text-gray-800 mb-1 md:mb-2">{profileUser.username}</h1>
+              {profileUser.bio && (
+                <p className="text-gray-600 text-sm md:text-base mb-2 md:mb-3">{profileUser.bio}</p>
+              )}
 
-              {/* Stats Row – clickable */}
-              <div className="flex space-x-6 text-sm">
+              {/* Stats Row – responsive spacing */}
+              <div className="flex space-x-4 md:space-x-6 text-sm">
                 <div>
                   <span className="font-semibold text-gray-800">{photos.length}</span>{' '}
                   <span className="text-gray-500">posts</span>
@@ -164,19 +170,28 @@ const Profile = () => {
               </div>
             </div>
 
-            {/* Action Button */}
+            {/* Action Buttons – stack on mobile, side by side on desktop */}
             {isOwnProfile ? (
-              <button
-                onClick={() => navigate(`/profile/${username}/edit`)}
-                className="mt-4 md:mt-0 bg-rose-500 hover:bg-rose-600 text-white px-6 py-2 rounded-lg text-sm font-medium transition"
-              >
-                Edit Profile
-              </button>
+              <div className="flex flex-col md:flex-row gap-2 w-full md:w-auto mt-2 md:mt-0">
+                <button
+                  onClick={() => navigate(`/profile/${username}/edit`)}
+                  className="w-full md:w-auto bg-rose-500 hover:bg-rose-600 text-white px-6 py-2.5 md:py-2 rounded-lg text-sm font-medium transition"
+                >
+                  Edit Profile
+                </button>
+                <button
+                  onClick={handleLogout}
+                  className="w-full md:w-auto bg-gray-200 hover:bg-gray-300 text-gray-800 px-6 py-2.5 md:py-2 rounded-lg text-sm font-medium transition flex items-center justify-center gap-2"
+                >
+                  <LogOut className="w-4 h-4" />
+                  Logout
+                </button>
+              </div>
             ) : currentUser ? (
               <button
                 onClick={isFollowing ? handleUnfollow : handleFollow}
                 disabled={followLoading}
-                className={`mt-4 md:mt-0 px-6 py-2 rounded-lg text-sm font-medium transition ${
+                className={`w-full md:w-auto mt-2 md:mt-0 px-6 py-2.5 md:py-2 rounded-lg text-sm font-medium transition ${
                   isFollowing
                     ? 'bg-gray-200 text-gray-800 hover:bg-gray-300'
                     : 'bg-rose-500 hover:bg-rose-600 text-white'
@@ -189,13 +204,13 @@ const Profile = () => {
         </div>
 
         {/* Photo Grid */}
-        <h2 className="text-xl font-semibold text-gray-800 mb-4">Photos</h2>
+        <h2 className="text-lg md:text-xl font-semibold text-gray-800 mb-3 md:mb-4">Photos</h2>
         {photos.length === 0 ? (
-          <div className="text-center py-16 bg-white rounded-xl shadow-sm border border-gray-100">
+          <div className="text-center py-12 md:py-16 bg-white rounded-xl shadow-sm border border-gray-100">
             <p className="text-gray-500">No photos yet.</p>
           </div>
         ) : (
-          <div className="grid grid-cols-2 md:grid-cols-3 gap-4">
+          <div className="grid grid-cols-2 md:grid-cols-3 gap-3 md:gap-4">
             {photos.map(photo => (
               <div
                 key={photo._id}
@@ -222,7 +237,7 @@ const Profile = () => {
           </div>
         )}
 
-        {/* Followers/Following Modal */}
+        {/* Followers/Following Modal (unchanged) */}
         {modalOpen && (
           <div className="fixed inset-0 bg-black bg-opacity-50 z-50 flex items-center justify-center p-4">
             <div className="bg-white rounded-2xl w-full max-w-md max-h-[70vh] overflow-hidden">
