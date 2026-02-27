@@ -1,7 +1,7 @@
 import React, { useState, useContext } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { AuthContext } from '../../context/AuthContext';
-import { User, Lock, Mail, Globe, Bell, Trash2, Save } from 'lucide-react';
+import { User, Lock, Mail, Globe, Bell, Trash2, Save, Settings as SettingsIcon } from 'lucide-react';
 import api from '../../utils/api';
 
 const Settings = () => {
@@ -91,7 +91,6 @@ const Settings = () => {
     setLoading(true);
     try {
       await api.delete('/auth/account');
-      // logout and redirect
       localStorage.removeItem('token');
       window.location.href = '/login';
     } catch (err) {
@@ -117,7 +116,7 @@ const Settings = () => {
           {/* Header */}
           <div className="p-6 border-b border-gray-100">
             <h1 className="text-2xl font-bold text-gray-800 flex items-center space-x-2">
-              <Settings className="w-6 h-6 text-rose-500" />
+              <SettingsIcon className="w-6 h-6 text-rose-500" />
               <span>Settings</span>
             </h1>
           </div>
