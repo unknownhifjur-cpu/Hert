@@ -1,7 +1,7 @@
 import React, { useContext, useState, useEffect, useRef } from 'react';
 import { Link, useNavigate, useLocation } from 'react-router-dom';
 import { AuthContext } from '../../context/AuthContext';
-import { Home, HeartHandshake, User, Search, X, Bell, Settings } from 'lucide-react';
+import { Home, HeartHandshake, User, Search, X, Bell, Settings, MessageCircle } from 'lucide-react';
 import api from '../../utils/api';
 
 const Navbar = () => {
@@ -186,7 +186,7 @@ const Navbar = () => {
     navigate('/settings');
   };
 
-  // Format relative time (simple version)
+  // Format relative time
   const formatTime = (dateString) => {
     const now = new Date();
     const date = new Date(dateString);
@@ -283,7 +283,16 @@ const Navbar = () => {
                 Profile
               </Link>
               <span className="text-gray-600 text-sm">Welcome, {user.username}!</span>
-              
+
+              {/* Chat icon */}
+              <Link
+                to="/chat"
+                className="p-2 text-gray-600 hover:text-rose-600 transition"
+                aria-label="Chat"
+              >
+                <MessageCircle className="w-5 h-5" />
+              </Link>
+
               {/* Conditionally show settings on own profile, otherwise notifications */}
               {isOwnProfilePage() ? (
                 <button
@@ -308,8 +317,15 @@ const Navbar = () => {
               )}
             </div>
 
-            {/* Mobile: right‑side icon (notification or settings) */}
-            <div className="md:hidden flex items-center">
+            {/* Mobile: right‑side icons (chat + notification/settings) */}
+            <div className="md:hidden flex items-center space-x-2">
+              <Link
+                to="/chat"
+                className="p-2 text-gray-600 hover:text-rose-600 transition"
+                aria-label="Chat"
+              >
+                <MessageCircle className="w-6 h-6" />
+              </Link>
               <div className="relative" ref={notificationRef}>
                 {isOwnProfilePage() ? (
                   <button

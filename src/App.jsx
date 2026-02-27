@@ -12,7 +12,7 @@ import Bond from './components/bond/Bond';
 import EditProfile from './components/profile/EditProfile';
 import PhotoDetail from './components/photo/PhotoDetail';
 import Settings from './components/settings/Settings';
-
+import Chat from './components/chat/Chat';
 
 // Premium Loader Component
 const PremiumLoader = () => {
@@ -48,7 +48,7 @@ const PremiumLoader = () => {
         </p>
       </div>
 
-      {/* Inline animations (adds to global styles – only once) */}
+      {/* Inline animations */}
       <style>{`
         .loader-ring {
           border: 3px solid #fce7f3;
@@ -92,12 +92,16 @@ function AppRoutes() {
         <Route path="/settings" element={user ? <Settings /> : <Navigate to="/login" />} />
         <Route path="/bond" element={user ? <Bond /> : <Navigate to="/login" />} />
 
-        {/* Profile routes – edit is more specific so it should take precedence */}
+        {/* Profile routes – edit is more specific */}
         <Route path="/profile/:username/edit" element={user ? <EditProfile /> : <Navigate to="/login" />} />
         <Route path="/profile/:username" element={user ? <Profile /> : <Navigate to="/login" />} />
 
         {/* Photo detail route */}
         <Route path="/photo/:id" element={user ? <PhotoDetail /> : <Navigate to="/login" />} />
+
+        {/* Chat routes */}
+        <Route path="/chat" element={user ? <Chat /> : <Navigate to="/login" />} />
+        <Route path="/chat/:userId" element={user ? <Chat /> : <Navigate to="/login" />} />
 
         {/* Fallback for unmatched paths */}
         <Route path="*" element={<Navigate to={user ? '/' : '/login'} />} />
