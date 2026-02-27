@@ -15,6 +15,8 @@ const Navbar = () => {
   const [mobileSearchOpen, setMobileSearchOpen] = useState(false);
   const [notificationsOpen, setNotificationsOpen] = useState(false);
   const [showBottomNav, setShowBottomNav] = useState(true);
+  const [notifications, setNotifications] = useState([]);
+  const [unreadCount, setUnreadCount] = useState(0);
   const lastScrollY = useRef(0);
   const searchRef = useRef(null);
   const mobileInputRef = useRef(null);
@@ -33,8 +35,62 @@ const Navbar = () => {
     const path = location.pathname;
     if (!path.startsWith('/profile/')) return false;
     const segments = path.split('/');
-    const profileUsername = segments[2]; // after /profile/
+    const profileUsername = segments[2];
     return profileUsername === user.username;
+  };
+
+  // Fetch notifications
+  useEffect(() => {
+    if (user) {
+      fetchNotifications();
+    }
+  }, [user]);
+
+  const fetchNotifications = async () => {
+    try {
+      const res = await api.get('/notifications');
+      setNotifications(res.data);
+      setUnreadCount(res.data.filter(n => !n.read).length);
+    } catch (err) {
+      console.error('Failed to fetch notifications', err);
+    }
+  };
+
+  const markAsRead = async (id) => {
+    try {
+      await api.put(`/notifications/${id}/read`);
+      setNotifications(prev =>
+        prev.map(n => (n._id === id ? { ...n, read: true } : n))
+      );
+      setUnreadCount(prev => Math.max(0, prev - 1));
+    } catch (err) {
+      console.error('Failed to mark as read', err);
+    }
+  };
+
+  const markAllAsRead = async () => {
+    try {
+      await api.put('/notifications/read-all');
+      setNotifications(prev => prev.map(n => ({ ...n, read: true })));
+      setUnreadCount(0);
+    } catch (err) {
+      console.error('Failed to mark all as read', err);
+    }
+  };
+
+  const handleNotificationClick = (notif) => {
+    markAsRead(notif._id);
+    setNotificationsOpen(false);
+    // Navigate based on notification type
+    if (notif.type === 'like' || notif.type === 'comment') {
+      if (notif.photo) {
+        navigate(`/photo/${notif.photo._id}`);
+      }
+    } else if (notif.type === 'follow') {
+      navigate(`/profile/${notif.sender.username}`);
+    } else if (notif.type === 'bond_request' || notif.type === 'bond_accept') {
+      navigate('/bond');
+    }
   };
 
   // Click outside search dropdown
@@ -130,12 +186,20 @@ const Navbar = () => {
     navigate('/settings');
   };
 
-  // Dummy notifications
-  const notifications = [
-    { id: 1, text: 'John Doe liked your photo', time: '2 min ago' },
-    { id: 2, text: 'Jane commented: "Nice shot!"', time: '1 hour ago' },
-    { id: 3, text: 'You have a new follower', time: '3 hours ago' },
-  ];
+  // Format relative time (simple version)
+  const formatTime = (dateString) => {
+    const now = new Date();
+    const date = new Date(dateString);
+    const diffSeconds = Math.floor((now - date) / 1000);
+    if (diffSeconds < 60) return 'just now';
+    const diffMinutes = Math.floor(diffSeconds / 60);
+    if (diffMinutes < 60) return `${diffMinutes}m ago`;
+    const diffHours = Math.floor(diffMinutes / 60);
+    if (diffHours < 24) return `${diffHours}h ago`;
+    const diffDays = Math.floor(diffHours / 24);
+    if (diffDays < 7) return `${diffDays}d ago`;
+    return date.toLocaleDateString();
+  };
 
   return (
     <>
@@ -192,7 +256,7 @@ const Navbar = () => {
               </div>
             </div>
 
-            {/* Desktop Navigation with active highlighting */}
+            {/* Desktop Navigation */}
             <div className="hidden md:flex items-center gap-6">
               <Link
                 to="/"
@@ -235,8 +299,10 @@ const Navbar = () => {
                   className="relative p-2 text-gray-600 hover:text-rose-600 transition"
                 >
                   <Bell className="w-5 h-5" />
-                  {notifications.length > 0 && (
-                    <span className="absolute top-1 right-1 w-2 h-2 bg-rose-500 rounded-full"></span>
+                  {unreadCount > 0 && (
+                    <span className="absolute -top-1 -right-1 bg-rose-500 text-white text-xs rounded-full w-5 h-5 flex items-center justify-center">
+                      {unreadCount > 9 ? '9+' : unreadCount}
+                    </span>
                   )}
                 </button>
               )}
@@ -256,29 +322,66 @@ const Navbar = () => {
                 ) : (
                   <button
                     onClick={toggleNotifications}
-                    className="p-2 text-gray-600 hover:text-rose-600 transition"
+                    className="relative p-2 text-gray-600 hover:text-rose-600 transition"
                     aria-label="Notifications"
                   >
                     <Bell className="w-6 h-6" />
-                    {notifications.length > 0 && (
-                      <span className="absolute top-1 right-1 w-2.5 h-2.5 bg-rose-500 rounded-full"></span>
+                    {unreadCount > 0 && (
+                      <span className="absolute -top-1 -right-1 bg-rose-500 text-white text-xs rounded-full w-5 h-5 flex items-center justify-center">
+                        {unreadCount > 9 ? '9+' : unreadCount}
+                      </span>
                     )}
                   </button>
                 )}
                 {/* Notification dropdown (only shown when not on own profile) */}
                 {notificationsOpen && !isOwnProfilePage() && (
-                  <div className="absolute right-0 mt-2 w-64 bg-white rounded-xl shadow-lg border border-gray-100 overflow-hidden z-50">
-                    <div className="p-3 border-b border-gray-100 font-semibold text-gray-700">Notifications</div>
-                    <div className="max-h-60 overflow-y-auto">
+                  <div className="absolute right-0 mt-2 w-80 bg-white rounded-xl shadow-lg border border-gray-100 overflow-hidden z-50">
+                    <div className="p-3 border-b border-gray-100 flex justify-between items-center">
+                      <span className="font-semibold text-gray-700">Notifications</span>
+                      {unreadCount > 0 && (
+                        <button
+                          onClick={markAllAsRead}
+                          className="text-xs text-rose-500 hover:text-rose-600"
+                        >
+                          Mark all as read
+                        </button>
+                      )}
+                    </div>
+                    <div className="max-h-96 overflow-y-auto">
                       {notifications.length > 0 ? (
                         notifications.map((notif) => (
-                          <div key={notif.id} className="p-3 hover:bg-rose-50 border-b border-gray-50 last:border-0">
-                            <p className="text-sm text-gray-700">{notif.text}</p>
-                            <p className="text-xs text-gray-400 mt-1">{notif.time}</p>
-                          </div>
+                          <button
+                            key={notif._id}
+                            onClick={() => handleNotificationClick(notif)}
+                            className={`w-full text-left p-3 hover:bg-rose-50 border-b border-gray-50 last:border-0 flex items-start space-x-3 transition ${
+                              !notif.read ? 'bg-rose-50/50' : ''
+                            }`}
+                          >
+                            <div className="h-8 w-8 rounded-full bg-rose-100 flex items-center justify-center text-rose-600 font-semibold text-sm flex-shrink-0">
+                              {notif.sender?.username?.charAt(0).toUpperCase() || '?'}
+                            </div>
+                            <div className="flex-1">
+                              <p className="text-sm text-gray-800">
+                                <span className="font-medium">{notif.sender?.username}</span>{' '}
+                                {notif.type === 'like' && 'liked your photo'}
+                                {notif.type === 'comment' && 'commented on your photo'}
+                                {notif.type === 'follow' && 'started following you'}
+                                {notif.type === 'bond_request' && 'sent you a love request'}
+                                {notif.type === 'bond_accept' && 'accepted your love request'}
+                              </p>
+                              <p className="text-xs text-gray-400 mt-1">
+                                {formatTime(notif.createdAt)}
+                              </p>
+                            </div>
+                            {!notif.read && (
+                              <span className="w-2 h-2 bg-rose-500 rounded-full mt-2"></span>
+                            )}
+                          </button>
                         ))
                       ) : (
-                        <div className="p-4 text-center text-gray-400">No notifications</div>
+                        <div className="p-6 text-center text-gray-400">
+                          No notifications yet
+                        </div>
                       )}
                     </div>
                   </div>
@@ -336,7 +439,7 @@ const Navbar = () => {
         </div>
       </nav>
 
-      {/* Bottom navigation for mobile – hide/show on scroll with active highlighting */}
+      {/* Bottom navigation for mobile – hide/show on scroll */}
       <div
         className={`md:hidden fixed bottom-0 left-0 right-0 bg-white border-t border-gray-200 shadow-lg z-50 transform transition-transform duration-300 ${
           showBottomNav ? 'translate-y-0' : 'translate-y-full'
