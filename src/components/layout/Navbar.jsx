@@ -1,11 +1,8 @@
 import React, { useContext, useState, useEffect, useRef } from 'react';
 import { Link, useNavigate, useLocation } from 'react-router-dom';
 import { AuthContext } from '../../context/AuthContext';
+import { Home, HeartHandshake, User, Search, X, Bell, Settings, MessageCircle } from 'lucide-react';
 import api from '../../utils/api';
-import {
-  Home, HeartHandshake, User, Search, X, Bell, Settings, MessageCircle,
-  Check, X as XIcon, UserPlus // added icons for actions
-} from 'lucide-react';
 
 const Navbar = () => {
   const { user } = useContext(AuthContext);
@@ -20,7 +17,6 @@ const Navbar = () => {
   const [showBottomNav, setShowBottomNav] = useState(true);
   const [notifications, setNotifications] = useState([]);
   const [unreadCount, setUnreadCount] = useState(0);
-  const [actionLoading, setActionLoading] = useState(null); // id of notification being acted upon
   const lastScrollY = useRef(0);
   const searchRef = useRef(null);
   const mobileInputRef = useRef(null);
@@ -34,6 +30,7 @@ const Navbar = () => {
     return location.pathname.startsWith(path);
   };
 
+  // Check if current page is the user's own profile (including edit)
   const isOwnProfilePage = () => {
     const path = location.pathname;
     if (!path.startsWith('/profile/')) return false;
@@ -44,7 +41,9 @@ const Navbar = () => {
 
   // Fetch notifications
   useEffect(() => {
-    if (user) fetchNotifications();
+    if (user) {
+      fetchNotifications();
+    }
   }, [user]);
 
   const fetchNotifications = async () => {
@@ -82,8 +81,11 @@ const Navbar = () => {
   const handleNotificationClick = (notif) => {
     markAsRead(notif._id);
     setNotificationsOpen(false);
+    // Navigate based on notification type
     if (notif.type === 'like' || notif.type === 'comment') {
-      if (notif.photo) navigate(`/photo/${notif.photo._id}`);
+      if (notif.photo) {
+        navigate(`/photo/${notif.photo._id}`);
+      }
     } else if (notif.type === 'follow') {
       navigate(`/profile/${notif.sender.username}`);
     } else if (notif.type === 'bond_request' || notif.type === 'bond_accept') {
@@ -91,58 +93,7 @@ const Navbar = () => {
     }
   };
 
-  // Action: accept love request
-  const acceptLoveRequest = async (notifId, senderId) => {
-    setActionLoading(notifId);
-    try {
-      await api.post(`/bond/accept/${senderId}`);
-      // After accepting, refresh notifications and bond status
-      await fetchNotifications();
-      // Optionally close dropdown or keep open
-    } catch (err) {
-      alert(err.response?.data?.error || 'Failed to accept request');
-    } finally {
-      setActionLoading(null);
-    }
-  };
-
-  // Action: reject love request
-  const rejectLoveRequest = async (notifId, senderId) => {
-    setActionLoading(notifId);
-    try {
-      await api.post(`/bond/reject/${senderId}`);
-      await fetchNotifications();
-    } catch (err) {
-      alert(err.response?.data?.error || 'Failed to reject request');
-    } finally {
-      setActionLoading(null);
-    }
-  };
-
-  // Action: follow back
-  const followBack = async (notifId, senderId) => {
-    setActionLoading(notifId);
-    try {
-      // We need the username of the sender to follow. We have senderId, but we need to get username.
-      // The notification object has sender.username, but we need to follow by username.
-      // We can use the existing follow endpoint which expects username in URL.
-      // Let's extract username from notification.sender.username
-      const notif = notifications.find(n => n._id === notifId);
-      if (!notif || !notif.sender?.username) {
-        alert('Cannot follow: missing username');
-        return;
-      }
-      await api.post(`/users/${notif.sender.username}/follow`);
-      await fetchNotifications();
-      // Optionally mark notification as read after action
-    } catch (err) {
-      alert(err.response?.data?.error || 'Failed to follow back');
-    } finally {
-      setActionLoading(null);
-    }
-  };
-
-  // Click outside handlers (unchanged)
+  // Click outside search dropdown
   useEffect(() => {
     const handleClickOutside = (event) => {
       if (searchRef.current && !searchRef.current.contains(event.target)) {
@@ -153,6 +104,7 @@ const Navbar = () => {
     return () => document.removeEventListener('mousedown', handleClickOutside);
   }, []);
 
+  // Click outside notification dropdown
   useEffect(() => {
     const handleClickOutside = (event) => {
       if (notificationRef.current && !notificationRef.current.contains(event.target)) {
@@ -163,10 +115,14 @@ const Navbar = () => {
     return () => document.removeEventListener('mousedown', handleClickOutside);
   }, []);
 
+  // Auto-focus mobile search when opened
   useEffect(() => {
-    if (mobileSearchOpen && mobileInputRef.current) mobileInputRef.current.focus();
+    if (mobileSearchOpen && mobileInputRef.current) {
+      mobileInputRef.current.focus();
+    }
   }, [mobileSearchOpen]);
 
+  // Debounced search
   useEffect(() => {
     if (searchQuery.length < 2) {
       setSearchResults([]);
@@ -188,6 +144,7 @@ const Navbar = () => {
     }, 300);
   }, [searchQuery]);
 
+  // Hide bottom nav on scroll down, show on scroll up
   useEffect(() => {
     const handleScroll = () => {
       const currentScrollY = window.scrollY;
@@ -229,6 +186,7 @@ const Navbar = () => {
     navigate('/settings');
   };
 
+  // Format relative time
   const formatTime = (dateString) => {
     const now = new Date();
     const date = new Date(dateString);
@@ -245,49 +203,110 @@ const Navbar = () => {
 
   return (
     <>
+      {/* Main navbar (sticky top) */}
       <nav className="bg-white shadow-sm border-b border-gray-200 sticky top-0 z-50">
         <div className="container mx-auto px-4 py-3">
           <div className="flex items-center justify-between">
+            {/* Logo */}
             <Link to="/" className="text-2xl font-bold text-rose-600 hover:text-rose-700 transition">
               HeartLock
             </Link>
 
-            {/* Desktop Search (unchanged) */}
+            {/* Desktop Search */}
             <div className="hidden md:block flex-1 max-w-md mx-4" ref={searchRef}>
-              {/* ... same as before ... */}
+              <div className="relative">
+                <input
+                  type="text"
+                  placeholder="Search users..."
+                  value={searchQuery}
+                  onChange={(e) => setSearchQuery(e.target.value)}
+                  className="w-full pl-10 pr-10 py-2 border border-gray-200 rounded-full text-sm focus:ring-1 focus:ring-rose-200 focus:border-rose-400 transition"
+                />
+                <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 h-5 w-5 text-gray-400" />
+                {searchQuery && (
+                  <button
+                    onClick={clearSearch}
+                    className="absolute right-3 top-1/2 transform -translate-y-1/2 text-gray-400 hover:text-gray-600"
+                  >
+                    <X className="h-5 w-5" />
+                  </button>
+                )}
+                {showDropdown && (
+                  <div className="absolute top-full left-0 right-0 mt-2 bg-white rounded-xl shadow-lg border border-gray-100 max-h-60 overflow-y-auto z-50">
+                    {searching ? (
+                      <div className="p-4 text-center text-gray-400">Searching...</div>
+                    ) : searchResults.length > 0 ? (
+                      searchResults.map((result) => (
+                        <button
+                          key={result._id}
+                          onClick={() => goToProfile(result.username)}
+                          className="w-full px-4 py-3 flex items-center space-x-3 hover:bg-rose-50 transition"
+                        >
+                          <div className="h-8 w-8 rounded-full bg-rose-100 flex items-center justify-center text-rose-600 font-semibold text-sm">
+                            {result.username.charAt(0).toUpperCase()}
+                          </div>
+                          <span className="font-medium text-gray-700">{result.username}</span>
+                        </button>
+                      ))
+                    ) : (
+                      <div className="p-4 text-center text-gray-400">No users found</div>
+                    )}
+                  </div>
+                )}
+              </div>
             </div>
 
             {/* Desktop Navigation */}
             <div className="hidden md:flex items-center gap-6">
-              {/* ... links unchanged ... */}
               <Link
                 to="/"
-                className={`transition font-medium ${isActive('/') ? 'text-rose-600' : 'text-gray-700 hover:text-rose-600'}`}
+                className={`transition font-medium ${
+                  isActive('/') ? 'text-rose-600' : 'text-gray-700 hover:text-rose-600'
+                }`}
               >
                 Home
               </Link>
               <Link
                 to="/bond"
-                className={`transition font-medium ${isActive('/bond') ? 'text-rose-600' : 'text-gray-700 hover:text-rose-600'}`}
+                className={`transition font-medium ${
+                  isActive('/bond') ? 'text-rose-600' : 'text-gray-700 hover:text-rose-600'
+                }`}
               >
                 Bond
               </Link>
               <Link
                 to={`/profile/${user.username}`}
-                className={`transition font-medium ${isActive(`/profile/${user.username}`) ? 'text-rose-600' : 'text-gray-700 hover:text-rose-600'}`}
+                className={`transition font-medium ${
+                  isActive(`/profile/${user.username}`) ? 'text-rose-600' : 'text-gray-700 hover:text-rose-600'
+                }`}
               >
                 Profile
               </Link>
               <span className="text-gray-600 text-sm">Welcome, {user.username}!</span>
-              <Link to="/chat" className="p-2 text-gray-600 hover:text-rose-600 transition" aria-label="Chat">
+
+              {/* Chat icon */}
+              <Link
+                to="/chat"
+                className="p-2 text-gray-600 hover:text-rose-600 transition"
+                aria-label="Chat"
+              >
                 <MessageCircle className="w-5 h-5" />
               </Link>
+
+              {/* Conditionally show settings on own profile, otherwise notifications */}
               {isOwnProfilePage() ? (
-                <button onClick={goToSettings} className="p-2 text-gray-600 hover:text-rose-600 transition" aria-label="Settings">
+                <button
+                  onClick={goToSettings}
+                  className="p-2 text-gray-600 hover:text-rose-600 transition"
+                  aria-label="Settings"
+                >
                   <Settings className="w-5 h-5" />
                 </button>
               ) : (
-                <button onClick={toggleNotifications} className="relative p-2 text-gray-600 hover:text-rose-600 transition">
+                <button
+                  onClick={toggleNotifications}
+                  className="relative p-2 text-gray-600 hover:text-rose-600 transition"
+                >
                   <Bell className="w-5 h-5" />
                   {unreadCount > 0 && (
                     <span className="absolute -top-1 -right-1 bg-rose-500 text-white text-xs rounded-full w-5 h-5 flex items-center justify-center">
@@ -298,18 +317,30 @@ const Navbar = () => {
               )}
             </div>
 
-            {/* Mobile icons (unchanged) */}
+            {/* Mobile: right‑side icons (chat + notification/settings) */}
             <div className="md:hidden flex items-center space-x-2">
-              <Link to="/chat" className="p-2 text-gray-600 hover:text-rose-600 transition">
+              <Link
+                to="/chat"
+                className="p-2 text-gray-600 hover:text-rose-600 transition"
+                aria-label="Chat"
+              >
                 <MessageCircle className="w-6 h-6" />
               </Link>
               <div className="relative" ref={notificationRef}>
                 {isOwnProfilePage() ? (
-                  <button onClick={goToSettings} className="p-2 text-gray-600 hover:text-rose-600 transition">
+                  <button
+                    onClick={goToSettings}
+                    className="p-2 text-gray-600 hover:text-rose-600 transition"
+                    aria-label="Settings"
+                  >
                     <Settings className="w-6 h-6" />
                   </button>
                 ) : (
-                  <button onClick={toggleNotifications} className="relative p-2 text-gray-600 hover:text-rose-600 transition">
+                  <button
+                    onClick={toggleNotifications}
+                    className="relative p-2 text-gray-600 hover:text-rose-600 transition"
+                    aria-label="Notifications"
+                  >
                     <Bell className="w-6 h-6" />
                     {unreadCount > 0 && (
                       <span className="absolute -top-1 -right-1 bg-rose-500 text-white text-xs rounded-full w-5 h-5 flex items-center justify-center">
@@ -318,106 +349,55 @@ const Navbar = () => {
                     )}
                   </button>
                 )}
-                {/* Notification dropdown with action buttons */}
+                {/* Notification dropdown (only shown when not on own profile) */}
                 {notificationsOpen && !isOwnProfilePage() && (
                   <div className="absolute right-0 mt-2 w-80 bg-white rounded-xl shadow-lg border border-gray-100 overflow-hidden z-50">
                     <div className="p-3 border-b border-gray-100 flex justify-between items-center">
                       <span className="font-semibold text-gray-700">Notifications</span>
                       {unreadCount > 0 && (
-                        <button onClick={markAllAsRead} className="text-xs text-rose-500 hover:text-rose-600">
+                        <button
+                          onClick={markAllAsRead}
+                          className="text-xs text-rose-500 hover:text-rose-600"
+                        >
                           Mark all as read
                         </button>
                       )}
                     </div>
                     <div className="max-h-96 overflow-y-auto">
                       {notifications.length > 0 ? (
-                        notifications.map((notif) => {
-                          const isLoading = actionLoading === notif._id;
-                          return (
-                            <div
-                              key={notif._id}
-                              className={`p-3 hover:bg-rose-50 border-b border-gray-50 last:border-0 transition ${
-                                !notif.read ? 'bg-rose-50/50' : ''
-                              }`}
-                            >
-                              <div className="flex items-start space-x-3">
-                                <div className="h-8 w-8 rounded-full bg-rose-100 flex items-center justify-center text-rose-600 font-semibold text-sm flex-shrink-0">
-                                  {notif.sender?.username?.charAt(0).toUpperCase() || '?'}
-                                </div>
-                                <div className="flex-1">
-                                  <p className="text-sm text-gray-800">
-                                    <span className="font-medium">{notif.sender?.username}</span>{' '}
-                                    {notif.type === 'like' && 'liked your photo'}
-                                    {notif.type === 'comment' && 'commented on your photo'}
-                                    {notif.type === 'follow' && 'started following you'}
-                                    {notif.type === 'bond_request' && 'sent you a love request'}
-                                    {notif.type === 'bond_accept' && 'accepted your love request'}
-                                  </p>
-                                  <p className="text-xs text-gray-400 mt-1">{formatTime(notif.createdAt)}</p>
-
-                                  {/* Action buttons */}
-                                  {notif.type === 'bond_request' && (
-                                    <div className="flex space-x-2 mt-2">
-                                      <button
-                                        onClick={(e) => {
-                                          e.stopPropagation();
-                                          acceptLoveRequest(notif._id, notif.sender._id);
-                                        }}
-                                        disabled={isLoading}
-                                        className="p-1 bg-green-100 text-green-600 rounded-full hover:bg-green-200 disabled:opacity-50"
-                                        title="Accept"
-                                      >
-                                        {isLoading ? (
-                                          <div className="w-4 h-4 border-2 border-green-600 border-t-transparent rounded-full animate-spin" />
-                                        ) : (
-                                          <Check className="w-4 h-4" />
-                                        )}
-                                      </button>
-                                      <button
-                                        onClick={(e) => {
-                                          e.stopPropagation();
-                                          rejectLoveRequest(notif._id, notif.sender._id);
-                                        }}
-                                        disabled={isLoading}
-                                        className="p-1 bg-red-100 text-red-600 rounded-full hover:bg-red-200 disabled:opacity-50"
-                                        title="Reject"
-                                      >
-                                        {isLoading ? (
-                                          <div className="w-4 h-4 border-2 border-red-600 border-t-transparent rounded-full animate-spin" />
-                                        ) : (
-                                          <XIcon className="w-4 h-4" />
-                                        )}
-                                      </button>
-                                    </div>
-                                  )}
-
-                                  {notif.type === 'follow' && (
-                                    <button
-                                      onClick={(e) => {
-                                        e.stopPropagation();
-                                        followBack(notif._id, notif.sender._id);
-                                      }}
-                                      disabled={isLoading}
-                                      className="mt-2 flex items-center space-x-1 text-xs bg-rose-100 text-rose-600 px-3 py-1 rounded-full hover:bg-rose-200 disabled:opacity-50"
-                                    >
-                                      {isLoading ? (
-                                        <div className="w-4 h-4 border-2 border-rose-600 border-t-transparent rounded-full animate-spin" />
-                                      ) : (
-                                        <UserPlus className="w-3 h-3" />
-                                      )}
-                                      <span>Follow back</span>
-                                    </button>
-                                  )}
-                                </div>
-                                {!notif.read && !notif.type?.startsWith('bond_') && (
-                                  <span className="w-2 h-2 bg-rose-500 rounded-full mt-2"></span>
-                                )}
-                              </div>
+                        notifications.map((notif) => (
+                          <button
+                            key={notif._id}
+                            onClick={() => handleNotificationClick(notif)}
+                            className={`w-full text-left p-3 hover:bg-rose-50 border-b border-gray-50 last:border-0 flex items-start space-x-3 transition ${
+                              !notif.read ? 'bg-rose-50/50' : ''
+                            }`}
+                          >
+                            <div className="h-8 w-8 rounded-full bg-rose-100 flex items-center justify-center text-rose-600 font-semibold text-sm flex-shrink-0">
+                              {notif.sender?.username?.charAt(0).toUpperCase() || '?'}
                             </div>
-                          );
-                        })
+                            <div className="flex-1">
+                              <p className="text-sm text-gray-800">
+                                <span className="font-medium">{notif.sender?.username}</span>{' '}
+                                {notif.type === 'like' && 'liked your photo'}
+                                {notif.type === 'comment' && 'commented on your photo'}
+                                {notif.type === 'follow' && 'started following you'}
+                                {notif.type === 'bond_request' && 'sent you a love request'}
+                                {notif.type === 'bond_accept' && 'accepted your love request'}
+                              </p>
+                              <p className="text-xs text-gray-400 mt-1">
+                                {formatTime(notif.createdAt)}
+                              </p>
+                            </div>
+                            {!notif.read && (
+                              <span className="w-2 h-2 bg-rose-500 rounded-full mt-2"></span>
+                            )}
+                          </button>
+                        ))
                       ) : (
-                        <div className="p-6 text-center text-gray-400">No notifications yet</div>
+                        <div className="p-6 text-center text-gray-400">
+                          No notifications yet
+                        </div>
                       )}
                     </div>
                   </div>
@@ -426,7 +406,7 @@ const Navbar = () => {
             </div>
           </div>
 
-          {/* Mobile Search Overlay (unchanged) */}
+          {/* Mobile Search Overlay */}
           {mobileSearchOpen && (
             <div className="md:hidden mt-3 pb-3 animate-fadeIn" ref={searchRef}>
               <div className="relative">
@@ -440,7 +420,10 @@ const Navbar = () => {
                 />
                 <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 h-5 w-5 text-gray-400" />
                 {searchQuery && (
-                  <button onClick={clearSearch} className="absolute right-3 top-1/2 transform -translate-y-1/2 text-gray-400 hover:text-gray-600">
+                  <button
+                    onClick={clearSearch}
+                    className="absolute right-3 top-1/2 transform -translate-y-1/2 text-gray-400 hover:text-gray-600"
+                  >
                     <X className="h-5 w-5" />
                   </button>
                 )}
@@ -472,32 +455,51 @@ const Navbar = () => {
         </div>
       </nav>
 
-      {/* Bottom navigation (unchanged) */}
+      {/* Bottom navigation for mobile – hide/show on scroll */}
       <div
         className={`md:hidden fixed bottom-0 left-0 right-0 bg-white border-t border-gray-200 shadow-lg z-50 transform transition-transform duration-300 ${
           showBottomNav ? 'translate-y-0' : 'translate-y-full'
         }`}
       >
         <div className="flex justify-around items-center py-2">
-          <Link to="/" className={`flex flex-col items-center p-2 transition ${isActive('/') ? 'text-rose-600' : 'text-gray-600 hover:text-rose-600'}`}>
+          <Link
+            to="/"
+            className={`flex flex-col items-center p-2 transition ${
+              isActive('/') ? 'text-rose-600' : 'text-gray-600 hover:text-rose-600'
+            }`}
+          >
             <Home className="w-6 h-6" />
             <span className="text-xs mt-1">Home</span>
           </Link>
-          <Link to="/bond" className={`flex flex-col items-center p-2 transition ${isActive('/bond') ? 'text-rose-600' : 'text-gray-600 hover:text-rose-600'}`}>
+          <Link
+            to="/bond"
+            className={`flex flex-col items-center p-2 transition ${
+              isActive('/bond') ? 'text-rose-600' : 'text-gray-600 hover:text-rose-600'
+            }`}
+          >
             <HeartHandshake className="w-6 h-6" />
             <span className="text-xs mt-1">Bond</span>
           </Link>
-          <button onClick={toggleMobileSearch} className="flex flex-col items-center p-2 text-gray-600 hover:text-rose-600 transition">
+          <button
+            onClick={toggleMobileSearch}
+            className="flex flex-col items-center p-2 text-gray-600 hover:text-rose-600 transition"
+          >
             <Search className="w-6 h-6" />
             <span className="text-xs mt-1">Search</span>
           </button>
-          <Link to={`/profile/${user.username}`} className={`flex flex-col items-center p-2 transition ${isActive(`/profile/${user.username}`) ? 'text-rose-600' : 'text-gray-600 hover:text-rose-600'}`}>
+          <Link
+            to={`/profile/${user.username}`}
+            className={`flex flex-col items-center p-2 transition ${
+              isActive(`/profile/${user.username}`) ? 'text-rose-600' : 'text-gray-600 hover:text-rose-600'
+            }`}
+          >
             <User className="w-6 h-6" />
             <span className="text-xs mt-1">Profile</span>
           </Link>
         </div>
       </div>
 
+      {/* Spacer for mobile bottom nav */}
       <div className="md:hidden h-0"></div>
 
       <style>{`
