@@ -2,17 +2,18 @@ import React, { useState, useEffect, useContext } from 'react';
 import { useParams, useNavigate, Link } from 'react-router-dom';
 import { AuthContext } from '../../context/AuthContext';
 import api from '../../utils/api';
-import { X, LogOut } from 'lucide-react';
+import { X, Share2 } from 'lucide-react';
 
 const Profile = () => {
   const { username } = useParams();
   const navigate = useNavigate();
-  const { user: currentUser, logout } = useContext(AuthContext);
+  const { user: currentUser } = useContext(AuthContext);
   const [profileUser, setProfileUser] = useState(null);
   const [photos, setPhotos] = useState([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState('');
   const [followLoading, setFollowLoading] = useState(false);
+  const [showShareTooltip, setShowShareTooltip] = useState(false);
 
   // Modal state
   const [modalOpen, setModalOpen] = useState(false);
@@ -76,9 +77,23 @@ const Profile = () => {
     follower => follower._id?.toString() === currentUserId?.toString()
   );
 
-  const handleLogout = () => {
-    logout();
-    navigate('/login');
+  const handleShareProfile = async () => {
+    const profileUrl = `${window.location.origin}/profile/${username}`;
+    if (navigator.share) {
+      try {
+        await navigator.share({
+          title: `${username}'s Profile`,
+          url: profileUrl,
+        });
+      } catch (err) {
+        console.log('Share cancelled', err);
+      }
+    } else {
+      // Fallback: copy to clipboard
+      await navigator.clipboard.writeText(profileUrl);
+      setShowShareTooltip(true);
+      setTimeout(() => setShowShareTooltip(false), 2000);
+    }
   };
 
   const openModal = async (type) => {
@@ -172,20 +187,27 @@ const Profile = () => {
 
             {/* Action Buttons – stack on mobile, side by side on desktop */}
             {isOwnProfile ? (
-              <div className="flex flex-col md:flex-row gap-2 w-full md:w-auto mt-2 md:mt-0">
+              <div className="flex flex-col sm:flex-row gap-2 w-full md:w-auto mt-2 md:mt-0">
                 <button
                   onClick={() => navigate(`/profile/${username}/edit`)}
-                  className="w-full md:w-auto bg-rose-500 hover:bg-rose-600 text-white px-6 py-2.5 md:py-2 rounded-lg text-sm font-medium transition"
+                  className="w-full sm:w-auto bg-rose-500 hover:bg-rose-600 text-white px-6 py-2.5 md:py-2 rounded-lg text-sm font-medium transition"
                 >
                   Edit Profile
                 </button>
-                <button
-                  onClick={handleLogout}
-                  className="w-full md:w-auto bg-gray-200 hover:bg-gray-300 text-gray-800 px-6 py-2.5 md:py-2 rounded-lg text-sm font-medium transition flex items-center justify-center gap-2"
-                >
-                  <LogOut className="w-4 h-4" />
-                  Logout
-                </button>
+                <div className="relative w-full sm:w-auto">
+                  <button
+                    onClick={handleShareProfile}
+                    className="w-full sm:w-auto bg-gray-200 hover:bg-gray-300 text-gray-800 px-6 py-2.5 md:py-2 rounded-lg text-sm font-medium transition flex items-center justify-center gap-2"
+                  >
+                    <Share2 className="w-4 h-4" />
+                    Share Profile
+                  </button>
+                  {showShareTooltip && (
+                    <span className="absolute -top-8 left-1/2 transform -translate-x-1/2 bg-gray-800 text-white text-xs px-2 py-1 rounded whitespace-nowrap animate-fade-in">
+                      Link copied!
+                    </span>
+                  )}
+                </div>
               </div>
             ) : currentUser ? (
               <button
@@ -237,7 +259,7 @@ const Profile = () => {
           </div>
         )}
 
-        {/* Followers/Following Modal (unchanged) */}
+        {/* Followers/Following Modal */}
         {modalOpen && (
           <div className="fixed inset-0 bg-black bg-opacity-50 z-50 flex items-center justify-center p-4">
             <div className="bg-white rounded-2xl w-full max-w-md max-h-[70vh] overflow-hidden">
