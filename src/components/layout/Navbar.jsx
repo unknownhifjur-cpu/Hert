@@ -1,7 +1,7 @@
 import React, { useContext, useState, useEffect, useRef } from 'react';
 import { Link, useNavigate, useLocation } from 'react-router-dom';
 import { AuthContext } from '../../context/AuthContext';
-import { Home, Upload, User, Search, X, Bell, Settings } from 'lucide-react';
+import { Home, HeartHandshake, User, Search, X, Bell, Settings } from 'lucide-react';
 import api from '../../utils/api';
 
 const Navbar = () => {
@@ -197,8 +197,8 @@ const Navbar = () => {
               <Link to="/" className="text-gray-700 hover:text-rose-600 transition font-medium">
                 Home
               </Link>
-              <Link to="/upload" className="text-gray-700 hover:text-rose-600 transition font-medium">
-                Upload
+              <Link to="/bond" className="text-gray-700 hover:text-rose-600 transition font-medium">
+                Bond
               </Link>
               <Link to={`/profile/${user.username}`} className="text-gray-700 hover:text-rose-600 transition font-medium">
                 Profile
@@ -328,17 +328,19 @@ const Navbar = () => {
         }`}
       >
         <div className="flex justify-around items-center py-2">
-          <Link to="/" className="flex flex-col items-center p-2 text-gray-600 hover:text-rose-600 transition">
+          <Link
+            to="/"
+            className="flex flex-col items-center p-2 text-gray-600 hover:text-rose-600 transition"
+          >
             <Home className="w-6 h-6" />
             <span className="text-xs mt-1">Home</span>
           </Link>
-          <Link to="/upload" className="flex flex-col items-center p-2 text-gray-600 hover:text-rose-600 transition">
-            <Upload className="w-6 h-6" />
-            <span className="text-xs mt-1">Upload</span>
-          </Link>
-          <Link to={`/profile/${user.username}`} className="flex flex-col items-center p-2 text-gray-600 hover:text-rose-600 transition">
-            <User className="w-6 h-6" />
-            <span className="text-xs mt-1">Profile</span>
+          <Link
+            to="/bond"
+            className="flex flex-col items-center p-2 text-gray-600 hover:text-rose-600 transition"
+          >
+            <HeartHandshake className="w-6 h-6" />
+            <span className="text-xs mt-1">Bond</span>
           </Link>
           <button
             onClick={toggleMobileSearch}
@@ -347,6 +349,13 @@ const Navbar = () => {
             <Search className="w-6 h-6" />
             <span className="text-xs mt-1">Search</span>
           </button>
+          <Link
+            to={`/profile/${user.username}`}
+            className="flex flex-col items-center p-2 text-gray-600 hover:text-rose-600 transition"
+          >
+            <User className="w-6 h-6" />
+            <span className="text-xs mt-1">Profile</span>
+          </Link>
         </div>
       </div>
 
