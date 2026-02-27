@@ -2,7 +2,7 @@ import React, { useState, useEffect, useContext } from 'react';
 import { useParams, useNavigate, Link } from 'react-router-dom';
 import { AuthContext } from '../../context/AuthContext';
 import api from '../../utils/api';
-import { X, Share2 } from 'lucide-react';
+import { X, Share2, MessageCircle } from 'lucide-react'; // added MessageCircle
 
 const Profile = () => {
   const { username } = useParams();
@@ -138,7 +138,7 @@ const Profile = () => {
         {/* Profile Header */}
         <div className="bg-white rounded-xl shadow-sm border border-gray-100 p-4 md:p-6 mb-6 md:mb-8">
           <div className="flex flex-col md:flex-row items-start md:items-center gap-4 md:gap-6">
-            {/* Avatar – smaller on mobile */}
+            {/* Avatar */}
             <div className="h-16 w-16 md:h-20 md:w-20 rounded-full bg-rose-100 flex items-center justify-center text-rose-600 text-2xl md:text-3xl font-bold overflow-hidden flex-shrink-0">
               {profileUser.profilePic ? (
                 <img
@@ -158,7 +158,7 @@ const Profile = () => {
                 <p className="text-gray-600 text-sm md:text-base mb-2 md:mb-3">{profileUser.bio}</p>
               )}
 
-              {/* Stats Row – responsive spacing */}
+              {/* Stats Row */}
               <div className="flex space-x-4 md:space-x-6 text-sm">
                 <div>
                   <span className="font-semibold text-gray-800">{photos.length}</span>{' '}
@@ -185,8 +185,9 @@ const Profile = () => {
               </div>
             </div>
 
-            {/* Action Buttons – stack on mobile, side by side on desktop */}
+            {/* Action Buttons */}
             {isOwnProfile ? (
+              // Own profile: Edit Profile + Share Profile
               <div className="flex flex-col sm:flex-row gap-2 w-full md:w-auto mt-2 md:mt-0">
                 <button
                   onClick={() => navigate(`/profile/${username}/edit`)}
@@ -210,22 +211,32 @@ const Profile = () => {
                 </div>
               </div>
             ) : currentUser ? (
-              <button
-                onClick={isFollowing ? handleUnfollow : handleFollow}
-                disabled={followLoading}
-                className={`w-full md:w-auto mt-2 md:mt-0 px-6 py-2.5 md:py-2 rounded-lg text-sm font-medium transition ${
-                  isFollowing
-                    ? 'bg-gray-200 text-gray-800 hover:bg-gray-300'
-                    : 'bg-rose-500 hover:bg-rose-600 text-white'
-                }`}
-              >
-                {followLoading ? '...' : isFollowing ? 'Unfollow' : 'Follow'}
-              </button>
+              // Other user's profile: Follow/Unfollow + Message
+              <div className="flex flex-col sm:flex-row gap-2 w-full md:w-auto mt-2 md:mt-0">
+                <button
+                  onClick={isFollowing ? handleUnfollow : handleFollow}
+                  disabled={followLoading}
+                  className={`w-full sm:w-auto px-6 py-2.5 md:py-2 rounded-lg text-sm font-medium transition ${
+                    isFollowing
+                      ? 'bg-gray-200 text-gray-800 hover:bg-gray-300'
+                      : 'bg-rose-500 hover:bg-rose-600 text-white'
+                  }`}
+                >
+                  {followLoading ? '...' : isFollowing ? 'Unfollow' : 'Follow'}
+                </button>
+                <Link
+                  to={`/chat/${profileUser._id}`}
+                  className="w-full sm:w-auto bg-rose-100 hover:bg-rose-200 text-rose-600 px-6 py-2.5 md:py-2 rounded-lg text-sm font-medium transition flex items-center justify-center gap-2"
+                >
+                  <MessageCircle className="w-4 h-4" />
+                  Message
+                </Link>
+              </div>
             ) : null}
           </div>
         </div>
 
-        {/* Photo Grid */}
+        {/* Photo Grid (unchanged) */}
         <h2 className="text-lg md:text-xl font-semibold text-gray-800 mb-3 md:mb-4">Photos</h2>
         {photos.length === 0 ? (
           <div className="text-center py-12 md:py-16 bg-white rounded-xl shadow-sm border border-gray-100">
@@ -259,7 +270,7 @@ const Profile = () => {
           </div>
         )}
 
-        {/* Followers/Following Modal */}
+        {/* Followers/Following Modal (unchanged) */}
         {modalOpen && (
           <div className="fixed inset-0 bg-black bg-opacity-50 z-50 flex items-center justify-center p-4">
             <div className="bg-white rounded-2xl w-full max-w-md max-h-[70vh] overflow-hidden">
