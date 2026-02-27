@@ -192,15 +192,30 @@ const Navbar = () => {
               </div>
             </div>
 
-            {/* Desktop Navigation */}
+            {/* Desktop Navigation with active highlighting */}
             <div className="hidden md:flex items-center gap-6">
-              <Link to="/" className="text-gray-700 hover:text-rose-600 transition font-medium">
+              <Link
+                to="/"
+                className={`transition font-medium ${
+                  isActive('/') ? 'text-rose-600' : 'text-gray-700 hover:text-rose-600'
+                }`}
+              >
                 Home
               </Link>
-              <Link to="/bond" className="text-gray-700 hover:text-rose-600 transition font-medium">
+              <Link
+                to="/bond"
+                className={`transition font-medium ${
+                  isActive('/bond') ? 'text-rose-600' : 'text-gray-700 hover:text-rose-600'
+                }`}
+              >
                 Bond
               </Link>
-              <Link to={`/profile/${user.username}`} className="text-gray-700 hover:text-rose-600 transition font-medium">
+              <Link
+                to={`/profile/${user.username}`}
+                className={`transition font-medium ${
+                  isActive(`/profile/${user.username}`) ? 'text-rose-600' : 'text-gray-700 hover:text-rose-600'
+                }`}
+              >
                 Profile
               </Link>
               <span className="text-gray-600 text-sm">Welcome, {user.username}!</span>
@@ -321,7 +336,7 @@ const Navbar = () => {
         </div>
       </nav>
 
-      {/* Bottom navigation for mobile – hide/show on scroll */}
+      {/* Bottom navigation for mobile – hide/show on scroll with active highlighting */}
       <div
         className={`md:hidden fixed bottom-0 left-0 right-0 bg-white border-t border-gray-200 shadow-lg z-50 transform transition-transform duration-300 ${
           showBottomNav ? 'translate-y-0' : 'translate-y-full'
@@ -330,14 +345,18 @@ const Navbar = () => {
         <div className="flex justify-around items-center py-2">
           <Link
             to="/"
-            className="flex flex-col items-center p-2 text-gray-600 hover:text-rose-600 transition"
+            className={`flex flex-col items-center p-2 transition ${
+              isActive('/') ? 'text-rose-600' : 'text-gray-600 hover:text-rose-600'
+            }`}
           >
             <Home className="w-6 h-6" />
             <span className="text-xs mt-1">Home</span>
           </Link>
           <Link
             to="/bond"
-            className="flex flex-col items-center p-2 text-gray-600 hover:text-rose-600 transition"
+            className={`flex flex-col items-center p-2 transition ${
+              isActive('/bond') ? 'text-rose-600' : 'text-gray-600 hover:text-rose-600'
+            }`}
           >
             <HeartHandshake className="w-6 h-6" />
             <span className="text-xs mt-1">Bond</span>
@@ -351,7 +370,9 @@ const Navbar = () => {
           </button>
           <Link
             to={`/profile/${user.username}`}
-            className="flex flex-col items-center p-2 text-gray-600 hover:text-rose-600 transition"
+            className={`flex flex-col items-center p-2 transition ${
+              isActive(`/profile/${user.username}`) ? 'text-rose-600' : 'text-gray-600 hover:text-rose-600'
+            }`}
           >
             <User className="w-6 h-6" />
             <span className="text-xs mt-1">Profile</span>
