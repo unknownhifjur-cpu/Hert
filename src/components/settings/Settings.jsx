@@ -1,11 +1,20 @@
 import React, { useState, useContext } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { AuthContext } from '../../context/AuthContext';
-import { User, Lock, Mail, Globe, Bell, Trash2, Save, Settings as SettingsIcon } from 'lucide-react';
+import { User, Lock, Mail, Globe, Bell, Trash2, Save, Settings as SettingsIcon, LogOut, Info,
+  Camera,
+  Users,
+  Shield,
+  Sparkles,
+  Moon,
+  MessageCircle,
+  Palette, HeartHandshake,
+  Heart,
+  CalendarDays } from 'lucide-react';
 import api from '../../utils/api';
 
 const Settings = () => {
-  const { user } = useContext(AuthContext);
+  const { user, logout } = useContext(AuthContext);
   const navigate = useNavigate();
   const [activeTab, setActiveTab] = useState('account');
   const [loading, setLoading] = useState(false);
@@ -100,12 +109,21 @@ const Settings = () => {
     }
   };
 
+  const handleLogout = () => {
+    if (window.confirm('Are you sure you want to log out?')) {
+      logout();
+      navigate('/login');
+    }
+  };
+
   const tabs = [
     { id: 'account', label: 'Account', icon: User },
     { id: 'password', label: 'Password', icon: Lock },
     { id: 'email', label: 'Email', icon: Mail },
     { id: 'privacy', label: 'Privacy', icon: Globe },
     { id: 'notifications', label: 'Notifications', icon: Bell },
+    { id: 'about', label: 'About', icon: Info },        // New About tab
+    { id: 'logout', label: 'Logout', icon: LogOut },
     { id: 'danger', label: 'Danger Zone', icon: Trash2 },
   ];
 
@@ -157,7 +175,7 @@ const Settings = () => {
               {/* Account Tab */}
               {activeTab === 'account' && (
                 <div className="space-y-6">
-                  <div>
+                  <div className="bg-white rounded-xl border border-gray-100 p-6">
                     <h3 className="text-lg font-semibold text-gray-800 mb-4">Profile Information</h3>
                     <p className="text-gray-600 mb-4">
                       Manage your public profile information.
@@ -366,6 +384,142 @@ const Settings = () => {
                     <Save className="w-4 h-4" />
                     <span>{loading ? 'Saving...' : 'Save Preferences'}</span>
                   </button>
+                </div>
+              )}
+
+             {/* About Tab */}
+{activeTab === "about" && (
+  <div className="space-y-6">
+    <div className="bg-white rounded-xl border border-gray-100 p-6 shadow-sm">
+
+      {/* Header */}
+      <div className="flex items-center space-x-3 mb-6">
+        <div className="h-12 w-12 rounded-full bg-rose-100 flex items-center justify-center">
+          <Info className="w-6 h-6 text-rose-500" />
+        </div>
+        <div>
+          <h3 className="text-xl font-bold text-gray-800">HeartLock</h3>
+          <p className="text-sm text-gray-500">Version 1.0.0</p>
+        </div>
+      </div>
+
+      {/* Description */}
+      <p className="text-gray-600 mb-6 leading-relaxed">
+        HeartLock is more than just a photo-sharing platform — it’s a space 
+        to capture emotions, preserve memories, and connect through moments 
+        that truly matter. Build your personal visual story and share it 
+        with the people who matter most.
+      </p>
+
+      {/* Features */}
+      <div className="border-t border-gray-100 pt-6">
+        <h4 className="font-semibold text-gray-700 mb-4">Key Features</h4>
+
+        <div className="grid grid-cols-1 md:grid-cols-2 gap-4 text-sm text-gray-600">
+
+          <div className="flex items-start space-x-3 bg-gray-50 p-4 rounded-lg">
+            <Camera className="w-5 h-5 text-rose-500 mt-1" />
+            <div>
+              <h5 className="font-medium text-gray-800">Share Moments</h5>
+              <p>Upload photos and create a timeline of your favorite memories.</p>
+            </div>
+          </div>
+
+          <div className="flex items-start space-x-3 bg-gray-50 p-4 rounded-lg">
+            <Users className="w-5 h-5 text-rose-500 mt-1" />
+            <div>
+              <h5 className="font-medium text-gray-800">Connect</h5>
+              <p>Follow friends and build meaningful digital connections.</p>
+            </div>
+          </div>
+
+          <div className="flex items-start space-x-3 bg-gray-50 p-4 rounded-lg">
+            <Shield className="w-5 h-5 text-rose-500 mt-1" />
+            <div>
+              <h5 className="font-medium text-gray-800">Privacy Control</h5>
+              <p>Manage visibility and choose who can view your content.</p>
+            </div>
+          </div>
+
+          <div className="flex items-start space-x-3 bg-gray-50 p-4 rounded-lg">
+            <Sparkles className="w-5 h-5 text-rose-500 mt-1" />
+            <div>
+              <h5 className="font-medium text-gray-800">Discover</h5>
+              <p>Explore inspiring photography and creative stories.</p>
+            </div>
+          </div>
+
+        </div>
+      </div>
+
+      {/* Coming Soon */}
+<div className="border-t border-gray-100 pt-6 mt-6">
+  <h4 className="font-semibold text-gray-700 mb-4">Coming Soon</h4>
+
+  <div className="space-y-4 text-sm text-gray-600">
+
+    <div className="flex items-center space-x-3">
+      <Moon className="w-4 h-4 text-rose-500" />
+      <span>Dark Mode Support</span>
+    </div>
+
+    <div className="flex items-center space-x-3">
+      <MessageCircle className="w-4 h-4 text-rose-500" />
+      <span>Direct Messaging</span>
+    </div>
+
+    <div className="flex items-center space-x-3">
+      <Palette className="w-4 h-4 text-rose-500" />
+      <span>Profile Customization</span>
+    </div>
+
+    {/* New Relationship Features */}
+
+    <div className="flex items-center space-x-3">
+      <HeartHandshake className="w-4 h-4 text-rose-500" />
+      <span>Love Connect – Match & build meaningful bonds</span>
+    </div>
+
+    <div className="flex items-center space-x-3">
+      <Heart className="w-4 h-4 text-rose-500" />
+      <span>Relationship Manager – Track and celebrate milestones</span>
+    </div>
+
+    <div className="flex items-center space-x-3">
+      <CalendarDays className="w-4 h-4 text-rose-500" />
+      <span>Anniversary & Special Date Reminders</span>
+    </div>
+
+  </div>
+</div>
+
+      {/* Footer */}
+      <div className="border-t border-gray-100 pt-4 mt-6">
+        <p className="text-xs text-gray-400">
+          © 2026 HeartLock. All rights reserved.
+        </p>
+      </div>
+
+    </div>
+  </div>
+)}
+              {/* Logout Tab */}
+              {activeTab === 'logout' && (
+                <div className="space-y-4">
+                  <div className="bg-white rounded-xl border border-gray-200 p-6 text-center">
+                    <LogOut className="w-12 h-12 text-gray-400 mx-auto mb-4" />
+                    <h3 className="text-lg font-semibold text-gray-800 mb-2">End Your Session</h3>
+                    <p className="text-gray-600 mb-6">
+                      You will be logged out of your account and redirected to the login page.
+                    </p>
+                    <button
+                      onClick={handleLogout}
+                      className="bg-gray-600 hover:bg-gray-700 text-white px-8 py-3 rounded-lg text-sm font-medium transition inline-flex items-center space-x-2"
+                    >
+                      <LogOut className="w-4 h-4" />
+                      <span>Logout</span>
+                    </button>
+                  </div>
                 </div>
               )}
 

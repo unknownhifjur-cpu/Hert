@@ -18,9 +18,9 @@ const PhotoCard = ({ photo }) => {
   const [submitting, setSubmitting] = useState(false);
   const [showShareTooltip, setShowShareTooltip] = useState(false);
   const [heartAnim, setHeartAnim] = useState(false);
+  const [avatarError, setAvatarError] = useState(false);
 
   const handleLike = async () => {
-    // Trigger heart pop animation
     setHeartAnim(true);
     setTimeout(() => setHeartAnim(false), 300);
 
@@ -68,7 +68,6 @@ const PhotoCard = ({ photo }) => {
         console.log('Share cancelled', err);
       }
     } else {
-      // Fallback: copy to clipboard
       await navigator.clipboard.writeText(photo.imageUrl);
       setShowShareTooltip(true);
       setTimeout(() => setShowShareTooltip(false), 2000);
@@ -79,8 +78,17 @@ const PhotoCard = ({ photo }) => {
     <div className="bg-white rounded-2xl shadow-sm border border-gray-100 overflow-hidden hover:shadow-md transition-all duration-300">
       {/* Header – clickable username */}
       <Link to={`/profile/${photo.user?.username}`} className="p-4 flex items-center space-x-3 hover:bg-gray-50 transition-colors">
-        <div className="h-10 w-10 rounded-full bg-gradient-to-br from-rose-400 to-rose-600 flex items-center justify-center text-white font-semibold text-lg shadow-sm">
-          {photo.user?.username ? photo.user.username.charAt(0).toUpperCase() : 'U'}
+        <div className="h-10 w-10 rounded-full bg-gradient-to-br from-rose-400 to-rose-600 flex items-center justify-center text-white font-semibold text-lg shadow-sm overflow-hidden">
+          {photo.user?.profilePic && !avatarError ? (
+            <img
+              src={photo.user.profilePic}
+              alt={photo.user.username}
+              className="w-full h-full object-cover"
+              onError={() => setAvatarError(true)}
+            />
+          ) : (
+            (photo.user?.username ? photo.user.username.charAt(0).toUpperCase() : 'U')
+          )}
         </div>
         <div className="flex-1">
           <p className="font-semibold text-gray-800">{photo.user?.username || 'Unknown'}</p>
@@ -111,7 +119,7 @@ const PhotoCard = ({ photo }) => {
           </p>
         )}
 
-        {/* Action buttons – improved spacing and tooltips */}
+        {/* Action buttons */}
         <div className="flex items-center space-x-2 mb-3">
           <button
             onClick={handleLike}
@@ -199,7 +207,7 @@ const PhotoCard = ({ photo }) => {
         </div>
       </div>
 
-      {/* Animation keyframes – add to global CSS or style tag */}
+      {/* Animation keyframes */}
       <style>{`
         @keyframes like-pop {
           0% { transform: scale(1); }
