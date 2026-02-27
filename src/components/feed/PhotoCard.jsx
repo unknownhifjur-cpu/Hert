@@ -4,6 +4,16 @@ import { Heart, MessageCircle, Send, Download, Share2, MoreHorizontal } from 'lu
 import { AuthContext } from '../../context/AuthContext';
 import api from '../../utils/api';
 
+// Helper to determine badge ring color (same logic as Profile)
+const getBadgeRingColor = (createdAt) => {
+  if (!createdAt) return '';
+  const ageDays = Math.floor((new Date() - new Date(createdAt)) / (1000 * 60 * 60 * 24));
+  if (ageDays < 30) return 'ring-rose-200';
+  if (ageDays < 90) return 'ring-rose-400';
+  if (ageDays < 180) return 'ring-rose-600';
+  return 'ring-amber-400';
+};
+
 const PhotoCard = ({ photo }) => {
   const { user } = useContext(AuthContext);
   const currentUserId = user?._id || user?.id;
@@ -20,10 +30,11 @@ const PhotoCard = ({ photo }) => {
   const [heartAnim, setHeartAnim] = useState(false);
   const [avatarError, setAvatarError] = useState(false);
 
+  const badgeRingColor = getBadgeRingColor(photo.user?.createdAt);
+
   const handleLike = async () => {
     setHeartAnim(true);
     setTimeout(() => setHeartAnim(false), 300);
-
     try {
       const res = await api.post(`/photos/${photo._id}/like`);
       setLikes(res.data.likes);
@@ -78,7 +89,8 @@ const PhotoCard = ({ photo }) => {
     <div className="bg-white rounded-2xl shadow-sm border border-gray-100 overflow-hidden hover:shadow-md transition-all duration-300">
       {/* Header – clickable username */}
       <Link to={`/profile/${photo.user?.username}`} className="p-4 flex items-center space-x-3 hover:bg-gray-50 transition-colors">
-        <div className="h-10 w-10 rounded-full bg-gradient-to-br from-rose-400 to-rose-600 flex items-center justify-center text-white font-semibold text-lg shadow-sm overflow-hidden">
+        {/* Avatar with thin badge ring */}
+        <div className={`relative h-10 w-10 rounded-full ring-2 ${badgeRingColor} ring-offset-2 overflow-hidden flex-shrink-0`}>
           {photo.user?.profilePic && !avatarError ? (
             <img
               src={photo.user.profilePic}
@@ -87,7 +99,9 @@ const PhotoCard = ({ photo }) => {
               onError={() => setAvatarError(true)}
             />
           ) : (
-            (photo.user?.username ? photo.user.username.charAt(0).toUpperCase() : 'U')
+            <div className="w-full h-full bg-gradient-to-br from-rose-400 to-rose-600 flex items-center justify-center text-white font-semibold text-lg">
+              {photo.user?.username ? photo.user.username.charAt(0).toUpperCase() : 'U'}
+            </div>
           )}
         </div>
         <div className="flex-1">
@@ -108,7 +122,7 @@ const PhotoCard = ({ photo }) => {
         />
       </div>
 
-      {/* Footer */}
+      {/* Footer (unchanged) */}
       <div className="p-4">
         {photo.caption && (
           <p className="text-gray-800 mb-3">
