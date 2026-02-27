@@ -2,7 +2,7 @@ import React, { useState, useEffect, useContext } from 'react';
 import { useParams, useNavigate, Link } from 'react-router-dom';
 import { AuthContext } from '../../context/AuthContext';
 import api from '../../utils/api';
-import { X, Share2, MessageCircle } from 'lucide-react'; // added MessageCircle
+import { X, Share2, MessageCircle, Heart, Star, Award, Crown, Camera, MessageSquare } from 'lucide-react';
 
 const Profile = () => {
   const { username } = useParams();
@@ -14,10 +14,11 @@ const Profile = () => {
   const [error, setError] = useState('');
   const [followLoading, setFollowLoading] = useState(false);
   const [showShareTooltip, setShowShareTooltip] = useState(false);
+  const [avatarModalOpen, setAvatarModalOpen] = useState(false);
 
-  // Modal state
+  // Modal state for followers/following
   const [modalOpen, setModalOpen] = useState(false);
-  const [modalType, setModalType] = useState(''); // 'followers' or 'following'
+  const [modalType, setModalType] = useState('');
   const [modalList, setModalList] = useState([]);
   const [modalLoading, setModalLoading] = useState(false);
 
@@ -89,7 +90,6 @@ const Profile = () => {
         console.log('Share cancelled', err);
       }
     } else {
-      // Fallback: copy to clipboard
       await navigator.clipboard.writeText(profileUrl);
       setShowShareTooltip(true);
       setTimeout(() => setShowShareTooltip(false), 2000);
@@ -116,6 +116,47 @@ const Profile = () => {
     setModalType('');
   };
 
+  // Determine badge based on account age
+  const getBadgeInfo = () => {
+    if (!profileUser || !profileUser.createdAt) return { level: '', ringColor: '', icon: null };
+    const createdAt = new Date(profileUser.createdAt);
+    const now = new Date();
+    const ageDays = Math.floor((now - createdAt) / (1000 * 60 * 60 * 24));
+
+    if (ageDays < 30) {
+      return { 
+        level: 'Newbie', 
+        ringColor: 'ring-rose-200',
+        icon: Heart,
+        iconColor: 'text-rose-300',
+      };
+    } else if (ageDays < 90) {
+      return { 
+        level: 'Bronze', 
+        ringColor: 'ring-rose-400',
+        icon: Star,
+        iconColor: 'text-rose-500',
+      };
+    } else if (ageDays < 180) {
+      return { 
+        level: 'Silver', 
+        ringColor: 'ring-rose-600',
+        icon: Award,
+        iconColor: 'text-rose-600',
+      };
+    } else {
+      return { 
+        level: 'Gold', 
+        ringColor: 'ring-amber-400',
+        icon: Crown,
+        iconColor: 'text-amber-500',
+      };
+    }
+  };
+
+  const badge = getBadgeInfo();
+  const BadgeIcon = badge.icon;
+
   if (loading) {
     return (
       <div className="min-h-screen bg-gray-50 flex items-center justify-center">
@@ -134,52 +175,59 @@ const Profile = () => {
 
   return (
     <div className="min-h-screen bg-gray-50 pb-20 md:pb-8 pt-4 md:pt-8">
-      <div className="max-w-4xl mx-auto px-4">
-        {/* Profile Header */}
+      <div className="max-w-6xl mx-auto px-4">
+        {/* Profile Header (unchanged) */}
         <div className="bg-white rounded-xl shadow-sm border border-gray-100 p-4 md:p-6 mb-6 md:mb-8">
           <div className="flex flex-col md:flex-row items-start md:items-center gap-4 md:gap-6">
-            {/* Avatar */}
-            <div className="h-16 w-16 md:h-20 md:w-20 rounded-full bg-rose-100 flex items-center justify-center text-rose-600 text-2xl md:text-3xl font-bold overflow-hidden flex-shrink-0">
-              {profileUser.profilePic ? (
-                <img
-                  src={profileUser.profilePic}
-                  alt={profileUser.username}
-                  className="w-full h-full object-cover"
-                />
-              ) : (
-                profileUser.username?.charAt(0).toUpperCase()
+            {/* Avatar with click-to-enlarge */}
+            <div className="relative group">
+              <div
+                className={`h-16 w-16 md:h-20 md:w-20 rounded-full ring-4 ${badge.ringColor} ring-offset-2 overflow-hidden shadow-xl transition-all duration-300 group-hover:ring-opacity-80 cursor-${profileUser.profilePic ? 'pointer' : 'default'}`}
+                title={`${badge.level} member – joined ${new Date(profileUser.createdAt).toLocaleDateString()}`}
+                onClick={() => profileUser.profilePic && setAvatarModalOpen(true)}
+              >
+                {profileUser.profilePic ? (
+                  <img
+                    src={profileUser.profilePic}
+                    alt={profileUser.username}
+                    className="w-full h-full object-cover"
+                  />
+                ) : (
+                  <div className="w-full h-full bg-gradient-to-br from-rose-400 to-rose-600 flex items-center justify-center text-white text-2xl md:text-3xl font-bold">
+                    {profileUser.username?.charAt(0).toUpperCase()}
+                  </div>
+                )}
+              </div>
+              {BadgeIcon && (
+                <div className={`absolute -bottom-1 -right-1 w-6 h-6 rounded-full bg-white shadow-lg flex items-center justify-center ${badge.iconColor}`}>
+                  <BadgeIcon className="w-4 h-4" />
+                </div>
               )}
             </div>
 
             {/* User Info */}
             <div className="flex-1 w-full md:w-auto">
-              <h1 className="text-xl md:text-2xl font-bold text-gray-800 mb-1 md:mb-2">{profileUser.username}</h1>
+              <div className="flex items-center gap-2 mb-1">
+                <h1 className="text-xl md:text-2xl font-bold text-gray-800">{profileUser.username}</h1>
+                <span className="text-xs px-2 py-1 rounded-full bg-rose-50 text-rose-600 font-medium">
+                  {badge.level}
+                </span>
+              </div>
               {profileUser.bio && (
                 <p className="text-gray-600 text-sm md:text-base mb-2 md:mb-3">{profileUser.bio}</p>
               )}
 
-              {/* Stats Row */}
               <div className="flex space-x-4 md:space-x-6 text-sm">
                 <div>
                   <span className="font-semibold text-gray-800">{photos.length}</span>{' '}
                   <span className="text-gray-500">posts</span>
                 </div>
-                <button
-                  onClick={() => openModal('followers')}
-                  className="hover:text-rose-600 transition"
-                >
-                  <span className="font-semibold text-gray-800">
-                    {profileUser.followers?.length || 0}
-                  </span>{' '}
+                <button onClick={() => openModal('followers')} className="hover:text-rose-600 transition">
+                  <span className="font-semibold text-gray-800">{profileUser.followers?.length || 0}</span>{' '}
                   <span className="text-gray-500">followers</span>
                 </button>
-                <button
-                  onClick={() => openModal('following')}
-                  className="hover:text-rose-600 transition"
-                >
-                  <span className="font-semibold text-gray-800">
-                    {profileUser.following?.length || 0}
-                  </span>{' '}
+                <button onClick={() => openModal('following')} className="hover:text-rose-600 transition">
+                  <span className="font-semibold text-gray-800">{profileUser.following?.length || 0}</span>{' '}
                   <span className="text-gray-500">following</span>
                 </button>
               </div>
@@ -187,7 +235,6 @@ const Profile = () => {
 
             {/* Action Buttons */}
             {isOwnProfile ? (
-              // Own profile: Edit Profile + Share Profile
               <div className="flex flex-col sm:flex-row gap-2 w-full md:w-auto mt-2 md:mt-0">
                 <button
                   onClick={() => navigate(`/profile/${username}/edit`)}
@@ -211,7 +258,6 @@ const Profile = () => {
                 </div>
               </div>
             ) : currentUser ? (
-              // Other user's profile: Follow/Unfollow + Message
               <div className="flex flex-col sm:flex-row gap-2 w-full md:w-auto mt-2 md:mt-0">
                 <button
                   onClick={isFollowing ? handleUnfollow : handleFollow}
@@ -236,34 +282,48 @@ const Profile = () => {
           </div>
         </div>
 
-        {/* Photo Grid (unchanged) */}
-        <h2 className="text-lg md:text-xl font-semibold text-gray-800 mb-3 md:mb-4">Photos</h2>
+        {/* Enhanced Photo Grid */}
+        <div className="mb-4 flex items-center justify-between">
+          <h2 className="text-lg md:text-xl font-semibold text-gray-800">Photos</h2>
+          {photos.length > 0 && (
+            <span className="text-sm text-gray-400">{photos.length} {photos.length === 1 ? 'photo' : 'photos'}</span>
+          )}
+        </div>
+
         {photos.length === 0 ? (
-          <div className="text-center py-12 md:py-16 bg-white rounded-xl shadow-sm border border-gray-100">
-            <p className="text-gray-500">No photos yet.</p>
+          <div className="text-center py-16 bg-white rounded-2xl shadow-sm border border-gray-100">
+            <Camera className="w-12 h-12 text-gray-300 mx-auto mb-3" />
+            <p className="text-gray-500 text-lg">No photos yet</p>
+            <p className="text-gray-400 text-sm mt-1">This user hasn't shared any moments</p>
           </div>
         ) : (
-          <div className="grid grid-cols-2 md:grid-cols-3 gap-3 md:gap-4">
+          <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-4">
             {photos.map(photo => (
               <div
                 key={photo._id}
-                className="relative aspect-square group overflow-hidden rounded-lg border border-gray-200 hover:border-rose-300 transition cursor-pointer"
+                className="relative aspect-square group cursor-pointer overflow-hidden rounded-xl bg-white shadow-sm hover:shadow-xl transition-all duration-300"
                 onClick={() => navigate(`/photo/${photo._id}`)}
               >
                 <img
                   src={photo.imageUrl}
                   alt={photo.caption || 'User photo'}
-                  className="w-full h-full object-cover"
+                  className="w-full h-full object-cover transition-transform duration-500 group-hover:scale-110"
                 />
-                <div className="absolute inset-0 bg-black bg-opacity-50 opacity-0 group-hover:opacity-100 transition flex items-center justify-center text-white space-x-4">
-                  <span className="flex items-center space-x-1">
-                    <span>❤️</span>
-                    <span>{photo.likes?.length || 0}</span>
-                  </span>
-                  <span className="flex items-center space-x-1">
-                    <span>💬</span>
-                    <span>{photo.comments?.length || 0}</span>
-                  </span>
+                {/* Gradient overlay */}
+                <div className="absolute inset-0 bg-gradient-to-t from-black/60 via-transparent to-transparent opacity-0 group-hover:opacity-100 transition-opacity duration-300" />
+                
+                {/* Stats overlay */}
+                <div className="absolute bottom-0 left-0 right-0 p-3 text-white transform translate-y-2 group-hover:translate-y-0 transition-transform duration-300">
+                  <div className="flex items-center space-x-3">
+                    <span className="flex items-center space-x-1 text-sm">
+                      <Heart className="w-4 h-4 fill-white" />
+                      <span>{photo.likes?.length || 0}</span>
+                    </span>
+                    <span className="flex items-center space-x-1 text-sm">
+                      <MessageSquare className="w-4 h-4" />
+                      <span>{photo.comments?.length || 0}</span>
+                    </span>
+                  </div>
                 </div>
               </div>
             ))}
@@ -308,6 +368,29 @@ const Profile = () => {
                   </ul>
                 )}
               </div>
+            </div>
+          </div>
+        )}
+
+        {/* Avatar Modal (unchanged) */}
+        {avatarModalOpen && profileUser.profilePic && (
+          <div
+            className="fixed inset-0 bg-black bg-opacity-90 z-50 flex items-center justify-center p-4"
+            onClick={() => setAvatarModalOpen(false)}
+          >
+            <div className="relative max-w-3xl max-h-full">
+              <img
+                src={profileUser.profilePic}
+                alt={profileUser.username}
+                className="max-w-full max-h-[90vh] object-contain rounded-lg shadow-2xl"
+                onClick={(e) => e.stopPropagation()}
+              />
+              <button
+                onClick={() => setAvatarModalOpen(false)}
+                className="absolute top-4 right-4 text-white bg-black/50 hover:bg-black/70 rounded-full p-2 transition"
+              >
+                <X className="w-6 h-6" />
+              </button>
             </div>
           </div>
         )}
