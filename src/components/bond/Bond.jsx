@@ -4,7 +4,7 @@ import { AuthContext } from '../../context/AuthContext';
 import api from '../../utils/api';
 import {
   Heart, Calendar, Image, Target, Smile, Lock, HeartHandshake,
-  UserPlus, Check, X, Send, Search, Users, Clock, Camera, BookOpen,
+  Check, X, Send, Search, Users, Camera, BookOpen,
   CheckCircle, Shield
 } from 'lucide-react';
 
@@ -18,7 +18,35 @@ const Bond = () => {
   const [partner, setPartner] = useState(null);
   const [sentRequests, setSentRequests] = useState([]);
   const [receivedRequests, setReceivedRequests] = useState([]);
-  const [bondData, setBondData] = useState(null);
+
+  // Dummy data for bonded view (replace with actual API call later)
+  const [bondStats, setBondStats] = useState({
+    connectionStrength: 92,
+    daysTogether: 247,
+    sharedPhotos: 47,
+    goalsMet: 2,
+    totalGoals: 5,
+    anniversary: 'June 15, 2024',
+    recentMemories: [
+      { date: '2025-12-10', text: 'First trip to the mountains', icon: '📸' },
+      { date: '2025-11-05', text: 'Concert night', icon: '🎵' },
+    ],
+    diaryEntries: 3,
+    recentDiary: [
+      { date: '2026-02-27', excerpt: 'Today we talked...' },
+      { date: '2026-02-26', excerpt: 'Cooked together...' },
+    ],
+    goals: [
+      { id: 1, text: 'Travel to Japan', completed: false },
+      { id: 2, text: 'Learn to cook together', completed: true },
+    ],
+    commitments: [
+      'Call every evening',
+      'Monthly date night',
+    ],
+    mood: 'happy',
+    interactions: 89,
+  });
 
   useEffect(() => {
     fetchBondStatus();
@@ -29,13 +57,8 @@ const Bond = () => {
       const res = await api.get('/bond/status');
       setBondStatus(res.data.status);
       setPartner(res.data.partner);
-      setSentRequests(res.data.sentRequests);
-      setReceivedRequests(res.data.receivedRequests);
-      if (res.data.status === 'bonded') {
-        // Fetch shared bond data
-        const bondRes = await api.get('/bond/dashboard'); // you'll need to implement this
-        setBondData(bondRes.data);
-      }
+      setSentRequests(res.data.sentRequests || []);
+      setReceivedRequests(res.data.receivedRequests || []);
     } catch (err) {
       console.error(err);
     } finally {
@@ -57,7 +80,7 @@ const Bond = () => {
     try {
       await api.post(`/bond/request/${username}`);
       alert('Request sent!');
-      fetchBondStatus(); // refresh
+      fetchBondStatus();
     } catch (err) {
       alert(err.response?.data?.error || 'Failed to send request');
     }
@@ -207,14 +230,14 @@ const Bond = () => {
     );
   }
 
-  // Bonded – show the full Bond dashboard (shared data)
+  // Bonded – show the full Bond dashboard (using dummy data for now)
   if (bondStatus === 'bonded') {
     return (
-      <div className="min-h-screen bg-gray-50 pt-6 pb-20 md:pb-8">
+      <div className="min-h-screen bg-gray-50 pt-16 pb-20 md:pb-8">
         <div className="max-w-6xl mx-auto px-4">
           {/* Header with partner info */}
-          <div className="mb-8 flex items-center justify-between">
-            <div className="flex items-center space-x-3">
+          <div className="mb-8 flex flex-col sm:flex-row sm:items-center sm:justify-between">
+            <div className="flex items-center space-x-3 mb-4 sm:mb-0">
               <HeartHandshake className="w-8 h-8 text-rose-500" />
               <h1 className="text-3xl font-bold text-gray-800">Bond</h1>
             </div>
@@ -229,34 +252,34 @@ const Bond = () => {
             )}
           </div>
 
-          {/* Quick Stats (example – could be from bondData) */}
+          {/* Quick Stats */}
           <div className="grid grid-cols-2 md:grid-cols-4 gap-4 mb-8">
             <div className="bg-white rounded-xl p-4 shadow-sm border border-gray-100">
               <Heart className="w-6 h-6 text-rose-500 mb-2" />
-              <p className="text-2xl font-bold text-gray-800">92%</p>
+              <p className="text-2xl font-bold text-gray-800">{bondStats.connectionStrength}%</p>
               <p className="text-xs text-gray-400">Connection</p>
             </div>
             <div className="bg-white rounded-xl p-4 shadow-sm border border-gray-100">
               <Calendar className="w-6 h-6 text-rose-500 mb-2" />
-              <p className="text-2xl font-bold text-gray-800">247</p>
+              <p className="text-2xl font-bold text-gray-800">{bondStats.daysTogether}</p>
               <p className="text-xs text-gray-400">Days together</p>
             </div>
             <div className="bg-white rounded-xl p-4 shadow-sm border border-gray-100">
               <Camera className="w-6 h-6 text-rose-500 mb-2" />
-              <p className="text-2xl font-bold text-gray-800">47</p>
+              <p className="text-2xl font-bold text-gray-800">{bondStats.sharedPhotos}</p>
               <p className="text-xs text-gray-400">Photos</p>
             </div>
             <div className="bg-white rounded-xl p-4 shadow-sm border border-gray-100">
               <Target className="w-6 h-6 text-rose-500 mb-2" />
-              <p className="text-2xl font-bold text-gray-800">2/5</p>
+              <p className="text-2xl font-bold text-gray-800">{bondStats.goalsMet}/{bondStats.totalGoals}</p>
               <p className="text-xs text-gray-400">Goals met</p>
             </div>
           </div>
 
-          {/* Bond Cards – reuse your existing sections */}
+          {/* Bond Cards */}
           <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
             {/* Relationship Overview */}
-            <div className="bg-white rounded-2xl shadow-sm border border-gray-100 p-6">
+            <div className="bg-white rounded-2xl shadow-sm border border-gray-100 p-6 hover:shadow-md transition">
               <div className="flex items-center space-x-3 mb-4">
                 <div className="p-2 bg-rose-50 rounded-lg">
                   <Heart className="w-6 h-6 text-rose-500" />
@@ -270,22 +293,22 @@ const Bond = () => {
                 </div>
                 <div className="flex justify-between">
                   <span className="text-gray-600">Anniversary</span>
-                  <span className="font-medium">June 15, 2024</span>
+                  <span className="font-medium">{bondStats.anniversary}</span>
                 </div>
                 <div className="flex justify-between">
                   <span className="text-gray-600">Connection strength</span>
                   <div className="flex items-center space-x-1">
-                    <div className="w-20 h-2 bg-gray-200 rounded-full">
-                      <div className="h-full bg-rose-500 rounded-full" style={{ width: '92%' }}></div>
+                    <div className="w-20 h-2 bg-gray-200 rounded-full overflow-hidden">
+                      <div className="h-full bg-rose-500 rounded-full" style={{ width: `${bondStats.connectionStrength}%` }} />
                     </div>
-                    <span className="text-sm">92%</span>
+                    <span className="text-sm font-medium">{bondStats.connectionStrength}%</span>
                   </div>
                 </div>
               </div>
             </div>
 
             {/* Memories & Moments */}
-            <div className="bg-white rounded-2xl shadow-sm border border-gray-100 p-6">
+            <div className="bg-white rounded-2xl shadow-sm border border-gray-100 p-6 hover:shadow-md transition">
               <div className="flex items-center space-x-3 mb-4">
                 <div className="p-2 bg-rose-50 rounded-lg">
                   <Image className="w-6 h-6 text-rose-500" />
@@ -295,24 +318,25 @@ const Bond = () => {
               <div className="space-y-3">
                 <div className="flex justify-between">
                   <span className="text-gray-600">Shared photos</span>
-                  <span className="font-medium">47</span>
+                  <span className="font-medium">{bondStats.sharedPhotos}</span>
                 </div>
                 <div className="flex justify-between">
                   <span className="text-gray-600">Saved notes</span>
-                  <span className="font-medium">12</span>
+                  <span className="font-medium">12</span> {/* Could be dynamic */}
                 </div>
                 <div>
                   <p className="text-sm font-medium text-gray-700 mb-1">Recent memories</p>
                   <ul className="text-sm text-gray-600 space-y-1">
-                    <li className="truncate">📸 2025-12-10 – First trip to the mountains</li>
-                    <li className="truncate">🎵 2025-11-05 – Concert night</li>
+                    {bondStats.recentMemories.map((mem, idx) => (
+                      <li key={idx} className="truncate">{mem.icon} {mem.date} – {mem.text}</li>
+                    ))}
                   </ul>
                 </div>
               </div>
             </div>
 
             {/* Diary */}
-            <div className="bg-white rounded-2xl shadow-sm border border-gray-100 p-6">
+            <div className="bg-white rounded-2xl shadow-sm border border-gray-100 p-6 hover:shadow-md transition">
               <div className="flex items-center space-x-3 mb-4">
                 <div className="p-2 bg-rose-50 rounded-lg">
                   <BookOpen className="w-6 h-6 text-rose-500" />
@@ -322,18 +346,19 @@ const Bond = () => {
               <div className="space-y-3">
                 <div className="flex justify-between">
                   <span className="text-gray-600">Total entries</span>
-                  <span className="font-medium">3</span>
+                  <span className="font-medium">{bondStats.diaryEntries}</span>
                 </div>
                 <ul className="text-sm text-gray-600">
-                  <li className="truncate">📝 2026-02-27 – Today we talked...</li>
-                  <li className="truncate">📝 2026-02-26 – Cooked together...</li>
+                  {bondStats.recentDiary.map((entry, idx) => (
+                    <li key={idx} className="truncate">📝 {entry.date} – {entry.excerpt}</li>
+                  ))}
                 </ul>
                 <button className="text-sm text-rose-500 hover:text-rose-600">Write new →</button>
               </div>
             </div>
 
             {/* Promises & Goals */}
-            <div className="bg-white rounded-2xl shadow-sm border border-gray-100 p-6">
+            <div className="bg-white rounded-2xl shadow-sm border border-gray-100 p-6 hover:shadow-md transition">
               <div className="flex items-center space-x-3 mb-4">
                 <div className="p-2 bg-rose-50 rounded-lg">
                   <Target className="w-6 h-6 text-rose-500" />
@@ -344,28 +369,29 @@ const Bond = () => {
                 <div>
                   <p className="text-sm font-medium text-gray-700 mb-1">Couple goals</p>
                   <ul className="text-sm space-y-1">
-                    <li className="flex items-center space-x-2">
-                      <CheckCircle className="w-4 h-4 text-gray-300" />
-                      <span className="text-gray-600">Travel to Japan</span>
-                    </li>
-                    <li className="flex items-center space-x-2">
-                      <CheckCircle className="w-4 h-4 text-green-500" />
-                      <span className="line-through text-gray-400">Learn to cook together</span>
-                    </li>
+                    {bondStats.goals.map(goal => (
+                      <li key={goal.id} className="flex items-center space-x-2">
+                        <CheckCircle className={`w-4 h-4 ${goal.completed ? 'text-green-500' : 'text-gray-300'}`} />
+                        <span className={goal.completed ? 'line-through text-gray-400' : 'text-gray-600'}>
+                          {goal.text}
+                        </span>
+                      </li>
+                    ))}
                   </ul>
                 </div>
                 <div>
                   <p className="text-sm font-medium text-gray-700 mb-1">Commitments</p>
                   <ul className="text-sm text-gray-600">
-                    <li>❤️ Call every evening</li>
-                    <li>❤️ Monthly date night</li>
+                    {bondStats.commitments.map((item, idx) => (
+                      <li key={idx}>❤️ {item}</li>
+                    ))}
                   </ul>
                 </div>
               </div>
             </div>
 
             {/* Mood & Connection */}
-            <div className="bg-white rounded-2xl shadow-sm border border-gray-100 p-6">
+            <div className="bg-white rounded-2xl shadow-sm border border-gray-100 p-6 hover:shadow-md transition">
               <div className="flex items-center space-x-3 mb-4">
                 <div className="p-2 bg-rose-50 rounded-lg">
                   <Smile className="w-6 h-6 text-rose-500" />
@@ -375,21 +401,21 @@ const Bond = () => {
               <div className="space-y-3">
                 <div className="flex justify-between">
                   <span className="text-gray-600">Recent mood</span>
-                  <span className="capitalize">happy</span>
+                  <span className="capitalize">{bondStats.mood}</span>
                 </div>
                 <div className="flex justify-between">
                   <span className="text-gray-600">Connection health</span>
-                  <span className="font-medium">92%</span>
+                  <span className="font-medium">{bondStats.connectionStrength}%</span>
                 </div>
                 <div className="flex justify-between">
                   <span className="text-gray-600">Interactions</span>
-                  <span className="font-medium">89</span>
+                  <span className="font-medium">{bondStats.interactions}</span>
                 </div>
               </div>
             </div>
 
             {/* Privacy & Control */}
-            <div className="bg-white rounded-2xl shadow-sm border border-gray-100 p-6">
+            <div className="bg-white rounded-2xl shadow-sm border border-gray-100 p-6 hover:shadow-md transition">
               <div className="flex items-center space-x-3 mb-4">
                 <div className="p-2 bg-rose-50 rounded-lg">
                   <Lock className="w-6 h-6 text-rose-500" />
