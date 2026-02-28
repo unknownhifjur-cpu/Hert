@@ -31,6 +31,23 @@ const Chat = () => {
   const menuRef = useRef(null);
   const socketRef = useRef(null);
 
+  // ---- Time‑based theme (Dream Message Mode) ----
+  const getTimeMode = () => {
+    const hour = new Date().getHours();
+    if (hour >= 0 && hour < 5) return 'dream';
+    if (hour >= 5 && hour < 11) return 'morning';
+    if (hour >= 11 && hour < 19) return 'day';
+    return 'sunset';
+  };
+  const timeMode = getTimeMode();
+
+  // ---- Heartbeat sync mode ----
+  const heartbeatClass = !isPartnerOnline
+    ? 'heartbeat-slow'
+    : partnerTyping
+    ? 'heartbeat-fast'
+    : 'heartbeat-normal';
+
   // ---- Initial data fetching ----
   useEffect(() => {
     if (userId) fetchMessages(userId);
@@ -58,9 +75,10 @@ const Chat = () => {
     if (!user || !userId) return;
 
     const token = localStorage.getItem('token');
+    // Use environment variable or fallback; remove explicit websocket transport to allow fallback
     const socket = io(import.meta.env.VITE_API_URL || 'https://hert-backend.onrender.com', {
       auth: { token },
-      transports: ['websocket']
+      // transports: ['websocket']   // removed to allow long‑polling fallback
     });
     socketRef.current = socket;
 
@@ -71,7 +89,6 @@ const Chat = () => {
 
     socket.on('new-message', (newMsg) => {
       setMessages(prev => {
-        // Avoid duplicate messages (e.g., when sending from self)
         if (prev.some(msg => msg._id === newMsg._id)) return prev;
         return [...prev, newMsg];
       });
@@ -93,7 +110,7 @@ const Chat = () => {
 
     socket.on('messages-read', ({ readerId }) => {
       if (readerId === userId) {
-        setMessages(prev => prev.map(msg => 
+        setMessages(prev => prev.map(msg =>
           msg.sender._id === user._id ? { ...msg, read: true } : msg
         ));
       }
@@ -145,12 +162,10 @@ const Chat = () => {
     }
   };
 
-  // Send message via socket (no API call needed – server saves & broadcasts)
   const sendMessage = (e) => {
     e.preventDefault();
     if (!newMessage.trim() || !userId || !socketRef.current) return;
 
-    // Stop typing indicator
     if (typingTimeoutRef.current) {
       clearTimeout(typingTimeoutRef.current);
       socketRef.current.emit('typing', { partnerId: userId, isTyping: false });
@@ -278,7 +293,6 @@ const Chat = () => {
   if (!userId) {
     return (
       <div className="min-h-screen bg-gradient-to-br from-rose-50 via-white to-pink-50">
-        {/* Sticky header with search */}
         <div className="sticky top-0 z-10 bg-white/80 backdrop-blur-md border-b border-rose-100 pt-12 pb-3 px-4">
           <div className="max-w-2xl mx-auto">
             <div className="flex items-center justify-between mb-3">
@@ -327,7 +341,6 @@ const Chat = () => {
           </div>
         </div>
 
-        {/* Conversations list */}
         <div className="px-4 pb-20">
           <div className="max-w-2xl mx-auto mt-4">
             {filteredConversations.length === 0 ? (
@@ -401,8 +414,8 @@ const Chat = () => {
   const groupedMessages = groupMessagesByDate();
 
   return (
-    <div className="h-screen bg-gradient-to-br from-rose-50 via-white to-pink-50 flex flex-col">
-      {/* Sticky header with clear chat button */}
+    <div className={`h-screen flex flex-col ${timeMode}`}>
+      {/* Sticky header */}
       <div className="sticky top-0 z-20 bg-white/80 backdrop-blur-sm border-b border-rose-100 shadow-sm">
         <div className="max-w-3xl mx-auto w-full px-4">
           <div className="flex items-center justify-between py-3">
@@ -463,8 +476,11 @@ const Chat = () => {
         </div>
       </div>
 
-      {/* Messages area with subtle heart pattern */}
-      <div className="flex-1 overflow-y-auto px-4 py-6" style={{ backgroundImage: 'radial-gradient(circle at 10px 10px, rgba(244, 63, 94, 0.05) 2px, transparent 0)', backgroundSize: '30px 30px' }}>
+      {/* Messages area with heartbeat */}
+      <div
+        className={`flex-1 overflow-y-auto px-4 py-6 ${heartbeatClass}`}
+        style={{ backgroundImage: 'radial-gradient(circle at 10px 10px, rgba(244, 63, 94, 0.05) 2px, transparent 0)', backgroundSize: '30px 30px' }}
+      >
         <div className="max-w-3xl mx-auto">
           {messages.length === 0 ? (
             <div className="h-full flex flex-col items-center justify-center text-center p-8">
@@ -682,6 +698,99 @@ const Chat = () => {
         }
         .animate-fadeIn {
           animation: fadeIn 0.3s ease-out;
+        }
+
+        /* Dream Message Mode - Time themes with improved contrast */
+        .dream {
+          background: linear-gradient(135deg, #0b1120 0%, #1a2639 100%);
+        }
+        .dream .bg-white,
+        .dream .bg-white\\/80,
+        .dream .bg-white\\/70,
+        .dream .bg-rose-50,
+        .dream .bg-rose-100 {
+          background-color: rgba(30, 41, 59, 0.9) !important;
+        }
+        .dream p, .dream span, .dream h1, .dream h2, .dream h3,
+        .dream .text-gray-600, .dream .text-gray-700, .dream .text-gray-800,
+        .dream .text-rose-400, .dream .text-rose-500, .dream .text-rose-600 {
+          color: #f1f5f9 !important;
+        }
+        .dream .text-xs.text-gray-400,
+        .dream .text-rose-300 {
+          color: #94a3b8 !important;
+        }
+        .dream input,
+        .dream textarea {
+          background-color: #1e293b !important;
+          color: #f1f5f9 !important;
+          border-color: #475569 !important;
+        }
+        .dream input::placeholder,
+        .dream textarea::placeholder {
+          color: #64748b !important;
+        }
+
+        .morning {
+          background: linear-gradient(145deg, #fff9e6 0%, #fff2d7 100%);
+        }
+        .morning .bg-white,
+        .morning .bg-white\\/80,
+        .morning .bg-white\\/70,
+        .morning .bg-rose-50,
+        .morning .bg-rose-100 {
+          background-color: rgba(255, 248, 235, 0.9) !important;
+        }
+        .morning p, .morning span, .morning h1, .morning h2, .morning h3,
+        .morning .text-gray-600, .morning .text-gray-700, .morning .text-gray-800,
+        .morning .text-rose-400, .morning .text-rose-500, .morning .text-rose-600 {
+          color: #2d3748 !important;
+        }
+        .morning .text-xs.text-gray-400,
+        .morning .text-rose-300 {
+          color: #718096 !important;
+        }
+
+        .sunset {
+          background: linear-gradient(135deg, #ffdab9 0%, #ffb6c1 100%);
+        }
+        .sunset .bg-white,
+        .sunset .bg-white\\/80,
+        .sunset .bg-white\\/70,
+        .sunset .bg-rose-50,
+        .sunset .bg-rose-100 {
+          background-color: rgba(255, 240, 245, 0.9) !important;
+        }
+        .sunset p, .sunset span, .sunset h1, .sunset h2, .sunset h3,
+        .sunset .text-gray-600, .sunset .text-gray-700, .sunset .text-gray-800,
+        .sunset .text-rose-400, .sunset .text-rose-500, .sunset .text-rose-600 {
+          color: #2d3748 !important;
+        }
+        .sunset .text-xs.text-gray-400,
+        .sunset .text-rose-300 {
+          color: #718096 !important;
+        }
+
+        .day {
+          background: linear-gradient(to bottom right, #fff1f2, #ffffff, #fdf2f8);
+        }
+
+        /* Heartbeat animations */
+        @keyframes heartbeat {
+          0% { transform: scale(1); }
+          25% { transform: scale(1.005); }
+          50% { transform: scale(1); }
+          75% { transform: scale(1.005); }
+          100% { transform: scale(1); }
+        }
+        .heartbeat-slow {
+          animation: heartbeat 3s infinite ease-in-out;
+        }
+        .heartbeat-normal {
+          animation: heartbeat 1.5s infinite ease-in-out;
+        }
+        .heartbeat-fast {
+          animation: heartbeat 0.8s infinite ease-in-out;
         }
       `}</style>
     </div>
