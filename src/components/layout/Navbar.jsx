@@ -1,5 +1,6 @@
 import React, { useContext, useState, useEffect, useRef } from 'react';
 import { Link, useNavigate, useLocation } from 'react-router-dom';
+import { motion, AnimatePresence } from 'framer-motion';
 import { AuthContext } from '../../context/AuthContext';
 import {
   Home,
@@ -34,7 +35,6 @@ const Navbar = () => {
     return location.pathname.startsWith(path);
   };
 
-  // Check if current page is the user's own profile (including edit)
   const isOwnProfilePage = () => {
     const path = location.pathname;
     if (!path.startsWith('/profile/')) return false;
@@ -43,11 +43,8 @@ const Navbar = () => {
     return profileUsername === user.username;
   };
 
-  // Fetch notifications
   useEffect(() => {
-    if (user) {
-      fetchNotifications();
-    }
+    if (user) fetchNotifications();
   }, [user]);
 
   const fetchNotifications = async () => {
@@ -85,11 +82,8 @@ const Navbar = () => {
   const handleNotificationClick = (notif) => {
     markAsRead(notif._id);
     setNotificationsOpen(false);
-    // Navigate based on notification type
     if (notif.type === 'like' || notif.type === 'comment') {
-      if (notif.photo) {
-        navigate(`/photo/${notif.photo._id}`);
-      }
+      if (notif.photo) navigate(`/photo/${notif.photo._id}`);
     } else if (notif.type === 'follow') {
       navigate(`/profile/${notif.sender.username}`);
     } else if (notif.type === 'bond_request' || notif.type === 'bond_accept') {
@@ -97,7 +91,6 @@ const Navbar = () => {
     }
   };
 
-  // Click outside notification dropdown
   useEffect(() => {
     const handleClickOutside = (event) => {
       if (notificationRef.current && !notificationRef.current.contains(event.target)) {
@@ -108,7 +101,6 @@ const Navbar = () => {
     return () => document.removeEventListener('mousedown', handleClickOutside);
   }, []);
 
-  // Hide bottom nav on scroll down, show on scroll up
   useEffect(() => {
     const handleScroll = () => {
       const currentScrollY = window.scrollY;
@@ -123,15 +115,9 @@ const Navbar = () => {
     return () => window.removeEventListener('scroll', handleScroll);
   }, []);
 
-  const toggleNotifications = () => {
-    setNotificationsOpen(!notificationsOpen);
-  };
+  const toggleNotifications = () => setNotificationsOpen(!notificationsOpen);
+  const goToSettings = () => navigate('/settings');
 
-  const goToSettings = () => {
-    navigate('/settings');
-  };
-
-  // Format relative time
   const formatTime = (dateString) => {
     const now = new Date();
     const date = new Date(dateString);
@@ -146,22 +132,37 @@ const Navbar = () => {
     return date.toLocaleDateString();
   };
 
+  // Animation variants
+  const iconVariants = {
+    hover: { scale: 1.1, transition: { type: 'spring', stiffness: 400, damping: 10 } },
+    tap: { scale: 0.95 },
+  };
+
+  const dotVariants = {
+    hidden: { scale: 0, opacity: 0 },
+    visible: { scale: 1, opacity: 1, transition: { type: 'spring', stiffness: 500, damping: 20 } },
+  };
+
   return (
     <>
-      {/* Main navbar (sticky top) */}
-      <nav className="bg-white shadow-sm border-b border-gray-200 sticky top-0 z-50">
+      {/* Main navbar – romantic gradient */}
+      <nav className="bg-gradient-to-r from-rose-50 via-white to-rose-50 shadow-sm border-b border-rose-100 sticky top-0 z-50 backdrop-blur-sm">
         <div className="container mx-auto px-4 py-3">
           <div className="flex items-center justify-between">
-            {/* Logo */}
-            <Link to="/" className="text-2xl font-bold text-rose-600 hover:text-rose-700 transition">
-              HeartLock
-            </Link>
+            {/* Logo with heart accent – animated */}
+            <motion.div whileHover="hover" whileTap="tap" variants={iconVariants}>
+              <Link to="/" className="flex items-center space-x-2 group">
+                <span className="text-2xl font-bold bg-gradient-to-r from-rose-600 to-rose-400 bg-clip-text text-transparent">
+                  HeartLock
+                </span>
+              </Link>
+            </motion.div>
 
-            {/* Desktop Search - Link to search page */}
+            {/* Desktop Search */}
             <div className="hidden md:block flex-1 max-w-md mx-4">
               <Link
                 to="/search"
-                className="flex items-center space-x-2 text-gray-500 hover:text-rose-600 transition border border-gray-200 rounded-full px-4 py-2"
+                className="flex items-center space-x-2 text-gray-500 hover:text-rose-600 transition border border-rose-200 rounded-full px-4 py-2 bg-white/50 backdrop-blur-sm hover:bg-white/80"
               >
                 <Search className="h-5 w-5" />
                 <span className="text-sm">Search users...</span>
@@ -170,102 +171,122 @@ const Navbar = () => {
 
             {/* Desktop Navigation */}
             <div className="hidden md:flex items-center gap-6">
-              <Link
-                to="/"
-                className={`transition font-medium ${
-                  isActive('/') ? 'text-rose-600' : 'text-gray-700 hover:text-rose-600'
-                }`}
-              >
-                Home
-              </Link>
-              <Link
-                to="/bond"
-                className={`transition font-medium ${
-                  isActive('/bond') ? 'text-rose-600' : 'text-gray-700 hover:text-rose-600'
-                }`}
-              >
-                Bond
-              </Link>
-              <Link
-                to={`/profile/${user.username}`}
-                className={`transition font-medium ${
-                  isActive(`/profile/${user.username}`) ? 'text-rose-600' : 'text-gray-700 hover:text-rose-600'
-                }`}
-              >
-                Profile
-              </Link>
-              <span className="text-gray-600 text-sm">Welcome, {user.username}!</span>
+              {['Home', 'Bond', 'Profile'].map((item) => {
+                const path = item === 'Home' ? '/' : item === 'Bond' ? '/bond' : `/profile/${user.username}`;
+                const isItemActive = isActive(path);
+                return (
+                  <motion.div
+                    key={item}
+                    whileHover="hover"
+                    whileTap="tap"
+                    variants={iconVariants}
+                    className="relative"
+                  >
+                    <Link
+                      to={path}
+                      className={`px-4 py-2 rounded-full transition-all duration-300 ${
+                        isItemActive
+                          ? 'text-rose-600 bg-rose-100/80'
+                          : 'text-gray-600 hover:text-rose-600 hover:bg-rose-50/50'
+                      }`}
+                    >
+                      {item}
+                    </Link>
+                    {isItemActive && (
+                      <motion.span
+                        variants={dotVariants}
+                        initial="hidden"
+                        animate="visible"
+                        className="absolute -bottom-1 left-1/2 transform -translate-x-1/2 w-1 h-1 bg-rose-500 rounded-full"
+                      />
+                    )}
+                  </motion.div>
+                );
+              })}
+
+              <span className="text-sm text-rose-400 font-light italic">Welcome, {user.username}!</span>
 
               {/* Chat icon */}
-              <Link
-                to="/chat"
-                className="p-2 text-gray-600 hover:text-rose-600 transition"
-                aria-label="Chat"
-              >
-                <MessageCircle className="w-5 h-5" />
-              </Link>
+              <motion.div whileHover="hover" whileTap="tap" variants={iconVariants}>
+                <Link
+                  to="/chat"
+                  className="p-2 text-gray-500 hover:text-rose-600 hover:bg-rose-50 rounded-full transition block"
+                  aria-label="Chat"
+                >
+                  <MessageCircle className="w-5 h-5" />
+                </Link>
+              </motion.div>
 
-              {/* Conditionally show settings on own profile, otherwise notifications */}
+              {/* Notifications / Settings */}
               {isOwnProfilePage() ? (
-                <button
-                  onClick={goToSettings}
-                  className="p-2 text-gray-600 hover:text-rose-600 transition"
-                  aria-label="Settings"
-                >
-                  <Settings className="w-5 h-5" />
-                </button>
-              ) : (
-                <button
-                  onClick={toggleNotifications}
-                  className="relative p-2 text-gray-600 hover:text-rose-600 transition"
-                >
-                  <Bell className="w-5 h-5" />
-                  {unreadCount > 0 && (
-                    <span className="absolute -top-1 -right-1 bg-rose-500 text-white text-xs rounded-full w-5 h-5 flex items-center justify-center">
-                      {unreadCount > 9 ? '9+' : unreadCount}
-                    </span>
-                  )}
-                </button>
-              )}
-            </div>
-
-            {/* Mobile: right‑side icons (chat + notification/settings) */}
-            <div className="md:hidden flex items-center space-x-2">
-              <Link
-                to="/chat"
-                className="p-2 text-gray-600 hover:text-rose-600 transition"
-                aria-label="Chat"
-              >
-                <MessageCircle className="w-6 h-6" />
-              </Link>
-              <div className="relative" ref={notificationRef}>
-                {isOwnProfilePage() ? (
+                <motion.div whileHover="hover" whileTap="tap" variants={iconVariants}>
                   <button
                     onClick={goToSettings}
-                    className="p-2 text-gray-600 hover:text-rose-600 transition"
+                    className="p-2 text-gray-500 hover:text-rose-600 hover:bg-rose-50 rounded-full transition"
                     aria-label="Settings"
                   >
-                    <Settings className="w-6 h-6" />
+                    <Settings className="w-5 h-5" />
                   </button>
-                ) : (
+                </motion.div>
+              ) : (
+                <motion.div whileHover="hover" whileTap="tap" variants={iconVariants}>
                   <button
                     onClick={toggleNotifications}
-                    className="relative p-2 text-gray-600 hover:text-rose-600 transition"
-                    aria-label="Notifications"
+                    className="relative p-2 text-gray-500 hover:text-rose-600 hover:bg-rose-50 rounded-full transition"
                   >
-                    <Bell className="w-6 h-6" />
+                    <Bell className="w-5 h-5" />
                     {unreadCount > 0 && (
-                      <span className="absolute -top-1 -right-1 bg-rose-500 text-white text-xs rounded-full w-5 h-5 flex items-center justify-center">
+                      <span className="absolute -top-1 -right-1 bg-rose-500 text-white text-xs rounded-full w-5 h-5 flex items-center justify-center animate-pulse">
                         {unreadCount > 9 ? '9+' : unreadCount}
                       </span>
                     )}
                   </button>
+                </motion.div>
+              )}
+            </div>
+
+            {/* Mobile right icons */}
+            <div className="md:hidden flex items-center space-x-2">
+              <motion.div whileHover="hover" whileTap="tap" variants={iconVariants}>
+                <Link
+                  to="/chat"
+                  className="p-2 text-gray-500 hover:text-rose-600 hover:bg-rose-50 rounded-full transition block"
+                  aria-label="Chat"
+                >
+                  <MessageCircle className="w-6 h-6" />
+                </Link>
+              </motion.div>
+              <div className="relative" ref={notificationRef}>
+                {isOwnProfilePage() ? (
+                  <motion.div whileHover="hover" whileTap="tap" variants={iconVariants}>
+                    <button
+                      onClick={goToSettings}
+                      className="p-2 text-gray-500 hover:text-rose-600 hover:bg-rose-50 rounded-full transition"
+                      aria-label="Settings"
+                    >
+                      <Settings className="w-6 h-6" />
+                    </button>
+                  </motion.div>
+                ) : (
+                  <motion.div whileHover="hover" whileTap="tap" variants={iconVariants}>
+                    <button
+                      onClick={toggleNotifications}
+                      className="relative p-2 text-gray-500 hover:text-rose-600 hover:bg-rose-50 rounded-full transition"
+                      aria-label="Notifications"
+                    >
+                      <Bell className="w-6 h-6" />
+                      {unreadCount > 0 && (
+                        <span className="absolute -top-1 -right-1 bg-rose-500 text-white text-xs rounded-full w-5 h-5 flex items-center justify-center animate-pulse">
+                          {unreadCount > 9 ? '9+' : unreadCount}
+                        </span>
+                      )}
+                    </button>
+                  </motion.div>
                 )}
-                {/* Stylish Notification dropdown (only shown when not on own profile) */}
+                {/* Notifications dropdown (unchanged) */}
                 {notificationsOpen && !isOwnProfilePage() && (
-                  <div className="absolute right-0 mt-2 w-80 sm:w-96 bg-white rounded-2xl shadow-xl border border-gray-100 overflow-hidden z-50 animate-slideDown">
-                    {/* Header */}
-                    <div className="p-4 border-b border-gray-100 flex justify-between items-center bg-gradient-to-r from-rose-50 to-white">
+                  <div className="absolute right-0 mt-2 w-80 sm:w-96 bg-white/90 backdrop-blur-lg rounded-2xl shadow-xl border border-rose-100 overflow-hidden z-50 animate-slideDown">
+                    <div className="p-4 border-b border-rose-100 flex justify-between items-center bg-gradient-to-r from-rose-50 to-white">
                       <span className="font-semibold text-gray-800">Notifications</span>
                       {unreadCount > 0 && (
                         <button
@@ -276,9 +297,7 @@ const Navbar = () => {
                         </button>
                       )}
                     </div>
-
-                    {/* Notification List */}
-                    <div className="max-h-96 overflow-y-auto divide-y divide-gray-50">
+                    <div className="max-h-96 overflow-y-auto divide-y divide-rose-50">
                       {notifications.length > 0 ? (
                         notifications.map((notif) => (
                           <button
@@ -288,12 +307,10 @@ const Navbar = () => {
                               !notif.read ? 'bg-rose-50/30' : ''
                             }`}
                           >
-                            {/* Avatar with icon overlay for notification type */}
                             <div className="relative flex-shrink-0">
                               <div className="h-10 w-10 rounded-full bg-gradient-to-br from-rose-400 to-rose-500 flex items-center justify-center text-white font-semibold text-sm shadow-sm">
                                 {notif.sender?.username?.charAt(0).toUpperCase() || '?'}
                               </div>
-                              {/* Type icon */}
                               <div className="absolute -bottom-1 -right-1 h-5 w-5 rounded-full bg-white shadow-sm flex items-center justify-center">
                                 {notif.type === 'like' && <Heart className="h-3 w-3 text-rose-500" />}
                                 {notif.type === 'comment' && <MessageCircle className="h-3 w-3 text-blue-500" />}
@@ -302,8 +319,6 @@ const Navbar = () => {
                                 {notif.type === 'bond_accept' && <CheckCircle className="h-3 w-3 text-emerald-500" />}
                               </div>
                             </div>
-
-                            {/* Content */}
                             <div className="flex-1 min-w-0">
                               <p className="text-sm text-gray-800">
                                 <span className="font-semibold">{notif.sender?.username}</span>{' '}
@@ -320,11 +335,7 @@ const Navbar = () => {
                                 {formatTime(notif.createdAt)}
                               </p>
                             </div>
-
-                            {/* Unread indicator with pulse */}
-                            {!notif.read && (
-                              <span className="w-2 h-2 bg-rose-500 rounded-full mt-2 animate-pulse"></span>
-                            )}
+                            {!notif.read && <span className="w-2 h-2 bg-rose-500 rounded-full mt-2 animate-pulse"></span>}
                           </button>
                         ))
                       ) : (
@@ -343,63 +354,54 @@ const Navbar = () => {
         </div>
       </nav>
 
-      {/* Bottom navigation for mobile – hide/show on scroll */}
+      {/* Bottom navigation – with animated icons */}
       <div
-        className={`md:hidden fixed bottom-0 left-0 right-0 bg-white border-t border-gray-200 shadow-lg z-50 transform transition-transform duration-300 ${
+        className={`md:hidden fixed bottom-0 left-0 right-0 bg-white/80 backdrop-blur-lg border-t border-rose-100 shadow-lg z-50 transform transition-transform duration-300 ${
           showBottomNav ? 'translate-y-0' : 'translate-y-full'
         }`}
       >
         <div className="flex justify-around items-center py-2">
-          <Link
-            to="/"
-            className={`flex flex-col items-center p-2 transition ${
-              isActive('/') ? 'text-rose-600' : 'text-gray-600 hover:text-rose-600'
-            }`}
-          >
-            <Home className="w-6 h-6" />
-            <span className="text-xs mt-1">Home</span>
-          </Link>
-          <Link
-            to="/bond"
-            className={`flex flex-col items-center p-2 transition ${
-              isActive('/bond') ? 'text-rose-600' : 'text-gray-600 hover:text-rose-600'
-            }`}
-          >
-            <HeartHandshake className="w-6 h-6" />
-            <span className="text-xs mt-1">Bond</span>
-          </Link>
-          <Link
-            to="/search"
-            className="flex flex-col items-center p-2 text-gray-600 hover:text-rose-600 transition"
-          >
-            <Search className="w-6 h-6" />
-            <span className="text-xs mt-1">Search</span>
-          </Link>
-          <Link
-            to={`/profile/${user.username}`}
-            className={`flex flex-col items-center p-2 transition ${
-              isActive(`/profile/${user.username}`) ? 'text-rose-600' : 'text-gray-600 hover:text-rose-600'
-            }`}
-          >
-            <User className="w-6 h-6" />
-            <span className="text-xs mt-1">Profile</span>
-          </Link>
+          {[
+            { to: '/', icon: Home, label: 'Home', active: isActive('/') },
+            { to: '/bond', icon: HeartHandshake, label: 'Bond', active: isActive('/bond') },
+            { to: '/search', icon: Search, label: 'Search', active: location.pathname === '/search' },
+            { to: `/profile/${user.username}`, icon: User, label: 'Profile', active: isActive(`/profile/${user.username}`) },
+          ].map((item) => (
+            <motion.div
+              key={item.label}
+              whileHover="hover"
+              whileTap="tap"
+              variants={iconVariants}
+              className="relative"
+            >
+              <Link
+                to={item.to}
+                className={`flex flex-col items-center p-2 transition ${
+                  item.active ? 'text-rose-600' : 'text-gray-500 hover:text-rose-600'
+                }`}
+              >
+                <item.icon className="w-6 h-6" />
+                <span className="text-xs mt-1">{item.label}</span>
+              </Link>
+              {item.active && (
+                <motion.span
+                  variants={dotVariants}
+                  initial="hidden"
+                  animate="visible"
+                  className="absolute -bottom-1 left-1/2 transform -translate-x-1/2 w-1 h-1 bg-rose-500 rounded-full"
+                />
+              )}
+            </motion.div>
+          ))}
         </div>
       </div>
 
-      {/* Spacer for mobile bottom nav */}
-      <div className="md:hidden h-0"></div>
+      <div className="md:hidden h-0" /> {/* Spacer for fixed bottom nav */}
 
       <style>{`
         @keyframes slideDown {
-          from {
-            opacity: 0;
-            transform: translateY(-10px);
-          }
-          to {
-            opacity: 1;
-            transform: translateY(0);
-          }
+          from { opacity: 0; transform: translateY(-10px); }
+          to { opacity: 1; transform: translateY(0); }
         }
         .animate-slideDown {
           animation: slideDown 0.2s ease-out;
