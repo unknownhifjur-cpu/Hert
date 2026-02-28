@@ -13,6 +13,8 @@ import EditProfile from './components/profile/EditProfile';
 import PhotoDetail from './components/photo/PhotoDetail';
 import Settings from './components/settings/Settings';
 import Chat from './components/chat/Chat';
+import InstallPrompt from './components/pwa/InstallPrompt';
+import OfflineIndicator from './components/pwa/OfflineIndicator';
 
 // Premium Loader Component
 const PremiumLoader = () => {
@@ -71,8 +73,29 @@ const PremiumLoader = () => {
   );
 };
 
+// Network Status Hook
+const useNetworkStatus = () => {
+  const [isOnline, setIsOnline] = useState(navigator.onLine);
+
+  useEffect(() => {
+    const handleOnline = () => setIsOnline(true);
+    const handleOffline = () => setIsOnline(false);
+
+    window.addEventListener('online', handleOnline);
+    window.addEventListener('offline', handleOffline);
+
+    return () => {
+      window.removeEventListener('online', handleOnline);
+      window.removeEventListener('offline', handleOffline);
+    };
+  }, []);
+
+  return isOnline;
+};
+
 function AppRoutes() {
   const { user, loading } = useContext(AuthContext);
+  const isOnline = useNetworkStatus();
 
   if (loading) {
     return <PremiumLoader />;
@@ -80,6 +103,12 @@ function AppRoutes() {
 
   return (
     <>
+      {/* Offline indicator - shows when app is offline */}
+      {!isOnline && <OfflineIndicator />}
+      
+      {/* Install prompt for PWA */}
+      <InstallPrompt />
+      
       <Navbar />
       <Routes>
         {/* Public routes */}
@@ -106,6 +135,15 @@ function AppRoutes() {
         {/* Fallback for unmatched paths */}
         <Route path="*" element={<Navigate to={user ? '/' : '/login'} />} />
       </Routes>
+
+      {/* Add offline support message for authenticated users */}
+      {user && !isOnline && (
+        <div className="fixed bottom-20 left-4 right-4 md:left-auto md:right-4 md:w-96 bg-yellow-50 border border-yellow-200 rounded-lg p-4 z-40">
+          <p className="text-sm text-yellow-800">
+            You're currently offline. Some features may be limited.
+          </p>
+        </div>
+      )}
     </>
   );
 }
