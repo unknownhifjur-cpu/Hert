@@ -55,7 +55,7 @@ const Chat = () => {
     if (!user || !userId) return;
 
     const token = localStorage.getItem('token');
-    const socket = io(import.meta.env.VITE_API_URL || 'http://localhost:5000', {
+    const socket = io(import.meta.env.VITE_API_URL || 'https://hert-backend.onrender.com', {
       auth: { token },
       transports: ['websocket']
     });
@@ -99,7 +99,8 @@ const Chat = () => {
         setPartner(partnerUser);
       } else {
         try {
-          const userRes = await api.get(`/users/${otherUserId}`);
+          // Use the new ID-based route to fetch partner info
+          const userRes = await api.get(`/users/id/${otherUserId}`);
           setPartner(userRes.data);
         } catch (err) {
           console.error('Could not fetch partner info');
