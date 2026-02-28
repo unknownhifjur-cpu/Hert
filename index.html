@@ -41,7 +41,7 @@
     <link rel="apple-touch-startup-image" href="/splash-750x1334.png" media="(device-width: 375px) and (device-height: 667px) and (-webkit-device-pixel-ratio: 2)" />
     <link rel="apple-touch-startup-image" href="/splash-640x1136.png" media="(device-width: 320px) and (device-height: 568px) and (-webkit-device-pixel-ratio: 2)" />
   
-  <!-- Instagram-style Splash Screen -->
+  <!-- HeartLock Custom Splash Screen -->
   <style>
     .splash-screen {
       position: fixed;
@@ -49,7 +49,7 @@
       left: 0;
       width: 100%;
       height: 100%;
-      background: white;
+      background: linear-gradient(135deg, #fff5f5 0%, #ffffff 50%, #fdf2f8 100%);
       display: flex;
       flex-direction: column;
       align-items: center;
@@ -64,78 +64,185 @@
       pointer-events: none;
     }
 
-    /* Instagram-style Camera Logo */
-    .instagram-logo {
+    /* HeartLock Custom Logo */
+    .heartlock-logo {
       position: relative;
-      width: 100px;
-      height: 100px;
+      width: 120px;
+      height: 120px;
       margin-bottom: 30px;
-      animation: logoPop 0.6s ease-out;
+      animation: heartBeat 1.5s ease-in-out infinite;
     }
 
-    .gradient-bg {
+    /* Outer Ring */
+    .outer-ring {
+      position: absolute;
+      top: 0;
+      left: 0;
       width: 100%;
       height: 100%;
-      background: radial-gradient(circle at 30% 30%, #fccc63, #e4405f, #833ab4);
-      border-radius: 30px;
-      transform: rotate(5deg);
-      box-shadow: 0 15px 30px rgba(0, 0, 0, 0.1);
-      animation: gradientShift 3s ease infinite;
+      border: 3px solid #fecdd3;
+      border-radius: 50%;
+      animation: rotate 8s linear infinite;
     }
 
-    .inner-square {
+    .outer-ring::before {
+      content: '';
       position: absolute;
-      top: 8px;
-      left: 8px;
-      right: 8px;
-      bottom: 8px;
-      background: white;
-      border-radius: 22px;
-      display: flex;
-      align-items: center;
-      justify-content: center;
-    }
-
-    .camera-lens {
-      width: 50px;
-      height: 50px;
-      background: radial-gradient(circle at 30% 30%, #fccc63, #e4405f, #833ab4);
-      border-radius: 50%;
-      display: flex;
-      align-items: center;
-      justify-content: center;
-    }
-
-    .lens-dot {
-      width: 18px;
-      height: 18px;
-      background: white;
+      top: -5px;
+      left: 50%;
+      transform: translateX(-50%);
+      width: 10px;
+      height: 10px;
+      background: #f43f5e;
       border-radius: 50%;
     }
 
-    .corner-dot {
+    /* Inner Ring */
+    .inner-ring {
       position: absolute;
       top: 15px;
+      left: 15px;
       right: 15px;
-      width: 8px;
-      height: 8px;
-      background: #e4405f;
+      bottom: 15px;
+      border: 2px dashed #f9a8d4;
       border-radius: 50%;
-      border: 2px solid white;
+      animation: rotateReverse 6s linear infinite;
     }
+
+    /* Heart Container */
+    .heart-container {
+      position: absolute;
+      top: 0;
+      left: 0;
+      width: 100%;
+      height: 100%;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+    }
+
+    /* Main Heart */
+    .heart-main {
+      position: relative;
+      width: 50px;
+      height: 45px;
+      animation: heartbeat 1.2s ease-in-out infinite;
+    }
+
+    .heart-main::before,
+    .heart-main::after {
+      content: '';
+      position: absolute;
+      top: 0;
+      width: 25px;
+      height: 40px;
+      border-radius: 25px 25px 0 0;
+      background: linear-gradient(135deg, #f43f5e, #fb7185);
+    }
+
+    .heart-main::before {
+      left: 25px;
+      transform: rotate(-45deg);
+      transform-origin: 0 100%;
+    }
+
+    .heart-main::after {
+      left: 0;
+      transform: rotate(45deg);
+      transform-origin: 100% 100%;
+    }
+
+    /* Lock Icon */
+    .lock-icon {
+      position: absolute;
+      bottom: -5px;
+      right: -5px;
+      width: 24px;
+      height: 24px;
+      background: white;
+      border-radius: 50%;
+      box-shadow: 0 4px 10px rgba(244, 63, 94, 0.3);
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      animation: lockPop 1s ease-out;
+    }
+
+    .lock-body {
+      width: 12px;
+      height: 10px;
+      background: #f43f5e;
+      border-radius: 2px;
+      position: relative;
+    }
+
+    .lock-body::before {
+      content: '';
+      position: absolute;
+      top: -5px;
+      left: 2px;
+      width: 8px;
+      height: 6px;
+      border: 2px solid #f43f5e;
+      border-radius: 4px 4px 0 0;
+      border-bottom: none;
+    }
+
+    /* Floating Hearts */
+    .floating-hearts {
+      position: absolute;
+      width: 100%;
+      height: 100%;
+      pointer-events: none;
+    }
+
+    .floating-heart {
+      position: absolute;
+      color: #fecdd3;
+      font-size: 12px;
+      animation: float 3s ease-in-out infinite;
+    }
+
+    .floating-heart:nth-child(1) { top: 10%; left: 10%; animation-delay: 0s; }
+    .floating-heart:nth-child(2) { top: 20%; right: 15%; animation-delay: 0.5s; }
+    .floating-heart:nth-child(3) { bottom: 25%; left: 15%; animation-delay: 1s; }
+    .floating-heart:nth-child(4) { bottom: 15%; right: 20%; animation-delay: 1.5s; }
+    .floating-heart:nth-child(5) { top: 40%; left: 20%; animation-delay: 2s; }
+    .floating-heart:nth-child(6) { top: 60%; right: 25%; animation-delay: 2.5s; }
 
     /* App Name */
     .app-name {
-      font-size: 32px;
+      font-size: 36px;
       font-weight: 300;
       margin-bottom: 40px;
-      letter-spacing: -0.5px;
+      letter-spacing: 1px;
       animation: fadeInUp 0.8s ease-out 0.2s both;
+      position: relative;
+    }
+
+    .app-name::before {
+      content: '❤️';
+      position: absolute;
+      left: -30px;
+      top: 50%;
+      transform: translateY(-50%);
+      font-size: 20px;
+      animation: tinyPulse 1s ease-in-out infinite;
+    }
+
+    .app-name::after {
+      content: '❤️';
+      position: absolute;
+      right: -30px;
+      top: 50%;
+      transform: translateY(-50%);
+      font-size: 20px;
+      animation: tinyPulse 1s ease-in-out infinite 0.3s;
     }
 
     .app-name strong {
       font-weight: 700;
-      background: linear-gradient(135deg, #fccc63, #e4405f, #833ab4);
+      background: linear-gradient(135deg, #f43f5e, #e11d48);
       -webkit-background-clip: text;
       -webkit-text-fill-color: transparent;
       background-clip: text;
@@ -143,32 +250,35 @@
 
     /* Loading Bar */
     .loading-container {
-      width: 200px;
+      width: 220px;
       text-align: center;
       animation: fadeInUp 0.8s ease-out 0.4s both;
     }
 
     .loading-bar {
       width: 100%;
-      height: 2px;
-      background: #f0f0f0;
-      border-radius: 2px;
+      height: 3px;
+      background: #ffe4e6;
+      border-radius: 3px;
       overflow: hidden;
+      box-shadow: inset 0 1px 2px rgba(0,0,0,0.05);
     }
 
     .loading-progress {
       height: 100%;
       width: 0%;
-      background: linear-gradient(90deg, #fccc63, #e4405f, #833ab4);
-      border-radius: 2px;
+      background: linear-gradient(90deg, #fda4af, #f43f5e, #e11d48);
+      border-radius: 3px;
       animation: loading 2s ease-in-out forwards;
+      box-shadow: 0 0 10px rgba(244, 63, 94, 0.5);
     }
 
     .loading-text {
-      font-size: 12px;
-      color: #999;
+      font-size: 13px;
+      color: #9ca3af;
       margin-top: 12px;
       letter-spacing: 0.5px;
+      font-weight: 300;
     }
 
     /* Bottom Credit */
@@ -178,36 +288,60 @@
       left: 0;
       right: 0;
       text-align: center;
-      font-size: 11px;
-      color: #ccc;
+      font-size: 12px;
+      color: #d1d5db;
       letter-spacing: 1px;
       animation: fadeInUp 0.8s ease-out 0.6s both;
     }
 
     .bottom-credit span {
-      color: #999;
-      font-weight: 500;
+      color: #f43f5e;
+      font-weight: 600;
+      background: linear-gradient(135deg, #f43f5e, #e11d48);
+      -webkit-background-clip: text;
+      -webkit-text-fill-color: transparent;
+      background-clip: text;
     }
 
     /* Animations */
-    @keyframes logoPop {
-      0% {
-        transform: scale(0.8);
-        opacity: 0;
-      }
-      100% {
-        transform: scale(1);
-        opacity: 1;
-      }
+    @keyframes heartBeat {
+      0%, 100% { transform: scale(1); }
+      25% { transform: scale(1.05); }
+      40% { transform: scale(1); }
+      60% { transform: scale(1.03); }
     }
 
-    @keyframes gradientShift {
-      0%, 100% {
-        filter: brightness(1);
-      }
-      50% {
-        filter: brightness(1.1);
-      }
+    @keyframes heartbeat {
+      0%, 100% { transform: scale(1); }
+      15% { transform: scale(1.1); }
+      30% { transform: scale(1); }
+      45% { transform: scale(1.05); }
+    }
+
+    @keyframes rotate {
+      from { transform: rotate(0deg); }
+      to { transform: rotate(360deg); }
+    }
+
+    @keyframes rotateReverse {
+      from { transform: rotate(360deg); }
+      to { transform: rotate(0deg); }
+    }
+
+    @keyframes float {
+      0%, 100% { transform: translateY(0) rotate(0deg); opacity: 0.3; }
+      50% { transform: translateY(-15px) rotate(10deg); opacity: 0.6; }
+    }
+
+    @keyframes lockPop {
+      0% { transform: scale(0); }
+      70% { transform: scale(1.1); }
+      100% { transform: scale(1); }
+    }
+
+    @keyframes tinyPulse {
+      0%, 100% { opacity: 0.5; transform: translateY(-50%) scale(1); }
+      50% { opacity: 1; transform: translateY(-50%) scale(1.1); }
     }
 
     @keyframes fadeInUp {
@@ -222,21 +356,11 @@
     }
 
     @keyframes loading {
-      0% {
-        width: 0%;
-      }
-      20% {
-        width: 20%;
-      }
-      50% {
-        width: 60%;
-      }
-      80% {
-        width: 90%;
-      }
-      100% {
-        width: 100%;
-      }
+      0% { width: 0%; }
+      20% { width: 30%; }
+      50% { width: 60%; }
+      80% { width: 85%; }
+      100% { width: 100%; }
     }
 
     /* Hide splash screen when app is loaded */
@@ -246,17 +370,28 @@
   </style>
 </head>
 <body>
-  <!-- Instagram-style Splash Screen -->
+  <!-- HeartLock Custom Splash Screen -->
   <div id="splash-screen" class="splash-screen">
-    <!-- Instagram Camera Logo -->
-    <div class="instagram-logo">
-      <div class="gradient-bg"></div>
-      <div class="inner-square">
-        <div class="camera-lens">
-          <div class="lens-dot"></div>
+    <!-- Floating Hearts Background -->
+    <div class="floating-hearts">
+      <div class="floating-heart">❤️</div>
+      <div class="floating-heart">❤️</div>
+      <div class="floating-heart">❤️</div>
+      <div class="floating-heart">❤️</div>
+      <div class="floating-heart">❤️</div>
+      <div class="floating-heart">❤️</div>
+    </div>
+
+    <!-- HeartLock Custom Logo -->
+    <div class="heartlock-logo">
+      <div class="outer-ring"></div>
+      <div class="inner-ring"></div>
+      <div class="heart-container">
+        <div class="heart-main"></div>
+        <div class="lock-icon">
+          <div class="lock-body"></div>
         </div>
       </div>
-      <div class="corner-dot"></div>
     </div>
 
     <!-- App Name -->
@@ -269,7 +404,7 @@
       <div class="loading-bar">
         <div class="loading-progress"></div>
       </div>
-      <div class="loading-text" id="loading-text">Loading your memories...</div>
+      <div class="loading-text" id="loading-text">Securing your memories...</div>
     </div>
 
     <!-- Bottom Credit -->
@@ -288,8 +423,9 @@
       // Update loading text
       const loadingText = document.getElementById('loading-text');
       const messages = [
-        'Loading your memories...',
-        'Almost there...',
+        'Securing your memories...',
+        'Locking with love...',
+        'Almost ready...',
         'Welcome to HeartLock!'
       ];
       
@@ -299,7 +435,7 @@
         if (loadingText) {
           loadingText.textContent = messages[index];
         }
-      }, 800);
+      }, 600);
 
       // Hide splash screen when app is ready
       window.addEventListener('load', function() {
@@ -314,7 +450,7 @@
               splash.style.display = 'none';
             }, 500);
           }
-        }, 2000); // Show splash for at least 2 seconds
+        }, 2500); // Show splash for at least 2.5 seconds
       });
     })();
   </script>
