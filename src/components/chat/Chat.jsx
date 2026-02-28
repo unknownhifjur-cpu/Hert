@@ -23,6 +23,9 @@ const Chat = () => {
   const [showChatMenu, setShowChatMenu] = useState(false);
   const [searchQuery, setSearchQuery] = useState('');
   const [replyingTo, setReplyingTo] = useState(null);
+  const [isPartnerOnline, setIsPartnerOnline] = useState(false);
+  const [partnerTyping, setPartnerTyping] = useState(false);
+  const typingTimeoutRef = useRef(null);
   const messagesEndRef = useRef(null);
   const inputRef = useRef(null);
   const menuRef = useRef(null);
@@ -74,9 +77,26 @@ const Chat = () => {
       });
     });
 
-    // Optional: handle typing indicators
+    socket.on('user-online', (onlineUserId) => {
+      if (onlineUserId === userId) setIsPartnerOnline(true);
+    });
+
+    socket.on('user-offline', (offlineUserId) => {
+      if (offlineUserId === userId) setIsPartnerOnline(false);
+    });
+
     socket.on('user-typing', ({ userId: typingUserId, isTyping }) => {
-      // You can add a "typing..." indicator here
+      if (typingUserId === userId) {
+        setPartnerTyping(isTyping);
+      }
+    });
+
+    socket.on('messages-read', ({ readerId }) => {
+      if (readerId === userId) {
+        setMessages(prev => prev.map(msg => 
+          msg.sender._id === user._id ? { ...msg, read: true } : msg
+        ));
+      }
     });
 
     return () => {
@@ -99,7 +119,6 @@ const Chat = () => {
         setPartner(partnerUser);
       } else {
         try {
-          // Use the new ID-based route to fetch partner info
           const userRes = await api.get(`/users/id/${otherUserId}`);
           setPartner(userRes.data);
         } catch (err) {
@@ -131,6 +150,12 @@ const Chat = () => {
     e.preventDefault();
     if (!newMessage.trim() || !userId || !socketRef.current) return;
 
+    // Stop typing indicator
+    if (typingTimeoutRef.current) {
+      clearTimeout(typingTimeoutRef.current);
+      socketRef.current.emit('typing', { partnerId: userId, isTyping: false });
+    }
+
     socketRef.current.emit('send-message', {
       receiverId: userId,
       message: newMessage.trim(),
@@ -139,6 +164,24 @@ const Chat = () => {
 
     setNewMessage('');
     setReplyingTo(null);
+  };
+
+  const handleTyping = () => {
+    if (!socketRef.current) return;
+
+    socketRef.current.emit('typing', {
+      partnerId: userId,
+      isTyping: true
+    });
+
+    if (typingTimeoutRef.current) clearTimeout(typingTimeoutRef.current);
+
+    typingTimeoutRef.current = setTimeout(() => {
+      socketRef.current.emit('typing', {
+        partnerId: userId,
+        isTyping: false
+      });
+    }, 2000);
   };
 
   const editMessage = async () => {
@@ -383,6 +426,16 @@ const Chat = () => {
                   </div>
                   <div>
                     <h2 className="font-semibold text-gray-800">{partner.username}</h2>
+                    <div className="flex items-center space-x-1 mt-0.5">
+                      {isPartnerOnline ? (
+                        <span className="text-xs text-emerald-500 flex items-center">
+                          <span className="w-1.5 h-1.5 bg-emerald-500 rounded-full mr-1 animate-pulse"></span>
+                          Active now
+                        </span>
+                      ) : (
+                        <span className="text-xs text-gray-400">Offline</span>
+                      )}
+                    </div>
                   </div>
                 </div>
               )}
@@ -506,7 +559,7 @@ const Chat = () => {
                             <div className={`flex items-center justify-end space-x-1 mt-1 text-xs ${isMe ? 'text-rose-200' : 'text-rose-400'}`}>
                               <span>{formatMessageTime(msg.createdAt)}</span>
                               {isMe && (
-                                <span>
+                                <span title={msg.read ? 'Read' : 'Sent'}>
                                   {msg.read ? (
                                     <CheckCheck className="w-3.5 h-3.5" />
                                   ) : (
@@ -581,6 +634,15 @@ const Chat = () => {
         </div>
       )}
 
+      {/* Typing indicator */}
+      {partnerTyping && (
+        <div className="max-w-3xl mx-auto w-full px-4 mb-1">
+          <div className="text-xs text-rose-400 italic ml-2">
+            {partner.username} is typing...
+          </div>
+        </div>
+      )}
+
       {/* Input area */}
       <div className="max-w-3xl mx-auto w-full px-4 pb-4">
         <form onSubmit={sendMessage} className="relative">
@@ -589,7 +651,10 @@ const Chat = () => {
               ref={inputRef}
               type="text"
               value={newMessage}
-              onChange={(e) => setNewMessage(e.target.value)}
+              onChange={(e) => {
+                setNewMessage(e.target.value);
+                handleTyping();
+              }}
               placeholder="Type a secure message..."
               className="flex-1 py-3 px-3 bg-transparent focus:outline-none text-gray-700 placeholder-rose-300"
             />

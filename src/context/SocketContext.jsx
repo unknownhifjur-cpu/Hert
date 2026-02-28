@@ -11,28 +11,50 @@ export const SocketProvider = ({ children }) => {
   const [socket, setSocket] = useState(null);
 
   useEffect(() => {
-    if (!user) return;
+    // If no user, disconnect and clean up
+    if (!user) {
+      if (socket) {
+        socket.disconnect();
+        setSocket(null);
+      }
+      return;
+    }
 
-    const token = localStorage.getItem('token'); // or wherever you store it
-    const newSocket = io('https://your-backend.onrender.com', {
+    const token = localStorage.getItem('token');
+    if (!token) {
+      console.warn('No token found – socket not connected');
+      return;
+    }
+
+    // Use environment variable or fallback to production URL
+    const backendUrl = import.meta.env.VITE_API_URL || 'https://hert-backend.onrender.com';
+
+    const newSocket = io(backendUrl, {
       auth: { token },
-      transports: ['websocket'], // optional, helps with some hosting
+      transports: ['websocket'],
+      reconnection: true,
+      reconnectionAttempts: 5,
+      reconnectionDelay: 1000,
     });
 
     setSocket(newSocket);
 
     newSocket.on('connect', () => {
-      console.log('Socket connected');
+      console.log('✅ Socket connected');
     });
 
-    newSocket.on('disconnect', () => {
-      console.log('Socket disconnected');
+    newSocket.on('connect_error', (err) => {
+      console.error('❌ Socket connection error:', err.message);
+    });
+
+    newSocket.on('disconnect', (reason) => {
+      console.log('🔌 Socket disconnected:', reason);
     });
 
     return () => {
-      newSocket.close();
+      newSocket.disconnect();
     };
-  }, [user]);
+  }, [user]); // Re-run when user changes (login/logout)
 
   return (
     <SocketContext.Provider value={socket}>
