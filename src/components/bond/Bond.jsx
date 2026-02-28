@@ -56,18 +56,20 @@ const Bond = () => {
     }
   };
 
+  // 🔁 Changed to shared endpoint
   const fetchBondData = async () => {
     try {
-      const res = await api.get('/bond/data');
+      const res = await api.get('/bond/shared');
       setBondData(res.data);
     } catch (err) {
       console.error('Failed to fetch bond data', err);
     }
   };
 
+  // 🔁 Changed to shared endpoint
   const updateBondData = async (updates) => {
     try {
-      const res = await api.put('/bond/data', updates);
+      const res = await api.put('/bond/shared', updates);
       setBondData(res.data);
       triggerSparkle();
     } catch (err) {
