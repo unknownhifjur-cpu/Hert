@@ -8,7 +8,14 @@ import Feed from './components/feed/Feed';
 import Upload from './components/upload/Upload';
 import Navbar from './components/layout/Navbar';
 import Profile from './components/profile/Profile';
-import Bond from './components/bond/Bond';
+import BondLanding from './components/bond/BondLanding';          // handles single/pending
+import BondDashboard from './components/bond/BondDashboard';      // bonded overview
+import BondTimeline from './components/bond/BondTimeline';        // timeline page
+import BondMoodTracker from './components/bond/BondMoodTracker';  // mood tracker (placeholder)
+import BondCompatibility from './components/bond/BondCompatibility'; // compatibility (placeholder)
+import BondAnniversary from './components/bond/BondAnniversary';  // anniversary (placeholder)
+import BondPrivacy from './components/bond/BondPrivacy';          // privacy (placeholder)
+import BondGift from './components/bond/BondGift';                // gift system (placeholder)
 import EditProfile from './components/profile/EditProfile';
 import PhotoDetail from './components/photo/PhotoDetail';
 import Settings from './components/settings/Settings';
@@ -174,7 +181,18 @@ function AppRoutes() {
         <Route path="/" element={user ? <Feed /> : <Navigate to="/login" />} />
         <Route path="/upload" element={user ? <Upload /> : <Navigate to="/login" />} />
         <Route path="/settings" element={user ? <Settings /> : <Navigate to="/login" />} />
-        <Route path="/bond" element={user ? <Bond /> : <Navigate to="/login" />} />
+
+        {/* Bond routes – landing page first */}
+        <Route path="/bond" element={user ? <BondLanding /> : <Navigate to="/login" />} />
+        <Route path="/bond/dashboard" element={user ? <BondDashboard /> : <Navigate to="/login" />} />
+        <Route path="/bond/timeline" element={user ? <BondTimeline /> : <Navigate to="/login" />} />
+        <Route path="/bond/mood" element={user ? <BondMoodTracker /> : <Navigate to="/login" />} />
+        <Route path="/bond/compatibility" element={user ? <BondCompatibility /> : <Navigate to="/login" />} />
+        <Route path="/bond/anniversary" element={user ? <BondAnniversary /> : <Navigate to="/login" />} />
+        <Route path="/bond/privacy" element={user ? <BondPrivacy /> : <Navigate to="/login" />} />
+        <Route path="/bond/gift" element={user ? <BondGift /> : <Navigate to="/login" />} />
+
+        {/* Search and notifications (currently public – adjust if needed) */}
         <Route path="/search" element={<SearchPage />} />
         <Route path="/notifications" element={<Notifications />} />
 
