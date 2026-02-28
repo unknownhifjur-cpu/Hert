@@ -18,7 +18,7 @@
     <meta name="apple-mobile-web-app-capable" content="yes" />
     
     <!-- PWA Status Bar & Theme -->
-    <meta name="theme-color" content="#000000" />
+    <meta name="theme-color" content="#ffffff" />
     <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent" />
     <meta name="apple-mobile-web-app-title" content="HeartLock" />
     
@@ -27,7 +27,7 @@
     <link rel="icon" type="image/png" sizes="32x32" href="/favicon.png" />
     
     <!-- Windows Pinned Site -->
-    <meta name="msapplication-TileColor" content="#000000" />
+    <meta name="msapplication-TileColor" content="#ffffff" />
     <meta name="msapplication-TileImage" content="/icon-144x144.png" />
     
     <!-- iOS Launch Screen (Optional but recommended) -->
@@ -40,9 +40,283 @@
     <link rel="apple-touch-startup-image" href="/splash-1242x2208.png" media="(device-width: 414px) and (device-height: 736px) and (-webkit-device-pixel-ratio: 3)" />
     <link rel="apple-touch-startup-image" href="/splash-750x1334.png" media="(device-width: 375px) and (device-height: 667px) and (-webkit-device-pixel-ratio: 2)" />
     <link rel="apple-touch-startup-image" href="/splash-640x1136.png" media="(device-width: 320px) and (device-height: 568px) and (-webkit-device-pixel-ratio: 2)" />
-  </head>
-  <body>
-    <div id="root"></div>
-    <script type="module" src="/src/main.jsx"></script>
-  </body>
+  
+  <!-- Instagram-style Splash Screen -->
+  <style>
+    .splash-screen {
+      position: fixed;
+      top: 0;
+      left: 0;
+      width: 100%;
+      height: 100%;
+      background: white;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+      z-index: 9999;
+      transition: opacity 0.5s ease-out;
+      font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Helvetica, Arial, sans-serif;
+    }
+
+    .splash-screen.fade-out {
+      opacity: 0;
+      pointer-events: none;
+    }
+
+    /* Instagram-style Camera Logo */
+    .instagram-logo {
+      position: relative;
+      width: 100px;
+      height: 100px;
+      margin-bottom: 30px;
+      animation: logoPop 0.6s ease-out;
+    }
+
+    .gradient-bg {
+      width: 100%;
+      height: 100%;
+      background: radial-gradient(circle at 30% 30%, #fccc63, #e4405f, #833ab4);
+      border-radius: 30px;
+      transform: rotate(5deg);
+      box-shadow: 0 15px 30px rgba(0, 0, 0, 0.1);
+      animation: gradientShift 3s ease infinite;
+    }
+
+    .inner-square {
+      position: absolute;
+      top: 8px;
+      left: 8px;
+      right: 8px;
+      bottom: 8px;
+      background: white;
+      border-radius: 22px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+    }
+
+    .camera-lens {
+      width: 50px;
+      height: 50px;
+      background: radial-gradient(circle at 30% 30%, #fccc63, #e4405f, #833ab4);
+      border-radius: 50%;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+    }
+
+    .lens-dot {
+      width: 18px;
+      height: 18px;
+      background: white;
+      border-radius: 50%;
+    }
+
+    .corner-dot {
+      position: absolute;
+      top: 15px;
+      right: 15px;
+      width: 8px;
+      height: 8px;
+      background: #e4405f;
+      border-radius: 50%;
+      border: 2px solid white;
+    }
+
+    /* App Name */
+    .app-name {
+      font-size: 32px;
+      font-weight: 300;
+      margin-bottom: 40px;
+      letter-spacing: -0.5px;
+      animation: fadeInUp 0.8s ease-out 0.2s both;
+    }
+
+    .app-name strong {
+      font-weight: 700;
+      background: linear-gradient(135deg, #fccc63, #e4405f, #833ab4);
+      -webkit-background-clip: text;
+      -webkit-text-fill-color: transparent;
+      background-clip: text;
+    }
+
+    /* Loading Bar */
+    .loading-container {
+      width: 200px;
+      text-align: center;
+      animation: fadeInUp 0.8s ease-out 0.4s both;
+    }
+
+    .loading-bar {
+      width: 100%;
+      height: 2px;
+      background: #f0f0f0;
+      border-radius: 2px;
+      overflow: hidden;
+    }
+
+    .loading-progress {
+      height: 100%;
+      width: 0%;
+      background: linear-gradient(90deg, #fccc63, #e4405f, #833ab4);
+      border-radius: 2px;
+      animation: loading 2s ease-in-out forwards;
+    }
+
+    .loading-text {
+      font-size: 12px;
+      color: #999;
+      margin-top: 12px;
+      letter-spacing: 0.5px;
+    }
+
+    /* Bottom Credit */
+    .bottom-credit {
+      position: absolute;
+      bottom: 30px;
+      left: 0;
+      right: 0;
+      text-align: center;
+      font-size: 11px;
+      color: #ccc;
+      letter-spacing: 1px;
+      animation: fadeInUp 0.8s ease-out 0.6s both;
+    }
+
+    .bottom-credit span {
+      color: #999;
+      font-weight: 500;
+    }
+
+    /* Animations */
+    @keyframes logoPop {
+      0% {
+        transform: scale(0.8);
+        opacity: 0;
+      }
+      100% {
+        transform: scale(1);
+        opacity: 1;
+      }
+    }
+
+    @keyframes gradientShift {
+      0%, 100% {
+        filter: brightness(1);
+      }
+      50% {
+        filter: brightness(1.1);
+      }
+    }
+
+    @keyframes fadeInUp {
+      from {
+        transform: translateY(20px);
+        opacity: 0;
+      }
+      to {
+        transform: translateY(0);
+        opacity: 1;
+      }
+    }
+
+    @keyframes loading {
+      0% {
+        width: 0%;
+      }
+      20% {
+        width: 20%;
+      }
+      50% {
+        width: 60%;
+      }
+      80% {
+        width: 90%;
+      }
+      100% {
+        width: 100%;
+      }
+    }
+
+    /* Hide splash screen when app is loaded */
+    .splash-screen.hide {
+      display: none;
+    }
+  </style>
+</head>
+<body>
+  <!-- Instagram-style Splash Screen -->
+  <div id="splash-screen" class="splash-screen">
+    <!-- Instagram Camera Logo -->
+    <div class="instagram-logo">
+      <div class="gradient-bg"></div>
+      <div class="inner-square">
+        <div class="camera-lens">
+          <div class="lens-dot"></div>
+        </div>
+      </div>
+      <div class="corner-dot"></div>
+    </div>
+
+    <!-- App Name -->
+    <div class="app-name">
+      Heart<strong>Lock</strong>
+    </div>
+
+    <!-- Loading Bar -->
+    <div class="loading-container">
+      <div class="loading-bar">
+        <div class="loading-progress"></div>
+      </div>
+      <div class="loading-text" id="loading-text">Loading your memories...</div>
+    </div>
+
+    <!-- Bottom Credit -->
+    <div class="bottom-credit">
+      from <span>HeartLock</span>
+    </div>
+  </div>
+
+  <div id="root"></div>
+  
+  <script type="module" src="/src/main.jsx"></script>
+  
+  <!-- Script to hide splash screen when app loads -->
+  <script>
+    (function() {
+      // Update loading text
+      const loadingText = document.getElementById('loading-text');
+      const messages = [
+        'Loading your memories...',
+        'Almost there...',
+        'Welcome to HeartLock!'
+      ];
+      
+      let index = 0;
+      const textInterval = setInterval(() => {
+        index = (index + 1) % messages.length;
+        if (loadingText) {
+          loadingText.textContent = messages[index];
+        }
+      }, 800);
+
+      // Hide splash screen when app is ready
+      window.addEventListener('load', function() {
+        setTimeout(function() {
+          const splash = document.getElementById('splash-screen');
+          if (splash) {
+            splash.classList.add('fade-out');
+            clearInterval(textInterval);
+            
+            // Remove from DOM after fade out
+            setTimeout(() => {
+              splash.style.display = 'none';
+            }, 500);
+          }
+        }, 2000); // Show splash for at least 2 seconds
+      });
+    })();
+  </script>
+</body>
 </html>
