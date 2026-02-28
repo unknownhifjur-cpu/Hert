@@ -1,5 +1,5 @@
 import React, { useContext, useEffect, useState } from 'react';
-import { BrowserRouter, Routes, Route, Navigate } from 'react-router-dom';
+import { BrowserRouter, Routes, Route, Navigate, useLocation } from 'react-router-dom';
 import { AuthProvider, AuthContext } from './context/AuthContext';
 import { Heart } from 'lucide-react';
 import Login from './components/auth/Login';
@@ -129,6 +129,21 @@ const useNetworkStatus = () => {
   return isOnline;
 };
 
+// Component to conditionally render Navbar
+const ConditionalNavbar = () => {
+  const location = useLocation();
+  
+  // Check if it's an individual chat page (has userId parameter)
+  const isIndividualChatRoute = location.pathname.startsWith('/chat/') && location.pathname !== '/chat';
+  
+  // Hide navbar only on individual chat pages, show on main chat list
+  if (isIndividualChatRoute) {
+    return null;
+  }
+  
+  return <Navbar />;
+};
+
 function AppRoutes() {
   const { user, loading } = useContext(AuthContext);
   const isOnline = useNetworkStatus();
@@ -145,7 +160,9 @@ function AppRoutes() {
       {/* Install prompt for PWA */}
       <InstallPrompt />
       
-      <Navbar />
+      {/* Conditional Navbar - hides only on individual chat pages */}
+      <ConditionalNavbar />
+      
       <Routes>
         {/* Public routes */}
         <Route path="/login" element={!user ? <Login /> : <Navigate to="/" />} />
