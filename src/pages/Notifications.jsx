@@ -11,7 +11,10 @@ import {
   Bell,
   Clock,
   ArrowLeft,
-  CheckCheck
+  CheckCheck,
+  Check,
+  X,
+  Loader2
 } from 'lucide-react';
 
 const Notifications = () => {
@@ -19,6 +22,7 @@ const Notifications = () => {
   const navigate = useNavigate();
   const [notifications, setNotifications] = useState([]);
   const [loading, setLoading] = useState(true);
+  const [actionLoading, setActionLoading] = useState({});
 
   useEffect(() => {
     fetchNotifications();
@@ -56,13 +60,56 @@ const Notifications = () => {
   };
 
   const handleNotificationClick = (notif) => {
-    markAsRead(notif._id);
     if (notif.type === 'like' || notif.type === 'comment') {
       if (notif.photo) navigate(`/photo/${notif.photo._id}`);
     } else if (notif.type === 'follow') {
       navigate(`/profile/${notif.sender.username}`);
     } else if (notif.type === 'bond_request' || notif.type === 'bond_accept') {
       navigate('/bond');
+    }
+  };
+
+  const handleFollowBack = async (notif) => {
+    const id = notif._id;
+    setActionLoading(prev => ({ ...prev, [id]: true }));
+    try {
+      await api.post(`/users/${notif.sender.username}/follow`);
+      await markAsRead(id);
+      // Mark locally that we've followed back
+      setNotifications(prev =>
+        prev.map(n => (n._id === id ? { ...n, followedBack: true } : n))
+      );
+    } catch (err) {
+      console.error('Follow back failed', err);
+      alert(err.response?.data?.error || 'Failed to follow back');
+    } finally {
+      setActionLoading(prev => ({ ...prev, [id]: false }));
+    }
+  };
+
+  const handleAcceptRequest = async (notif) => {
+    const id = notif._id;
+    setActionLoading(prev => ({ ...prev, [id]: true }));
+    try {
+      await api.post(`/bond/accept/${notif.sender._id}`);
+      await fetchNotifications();
+    } catch (err) {
+      console.error('Accept failed', err);
+      alert(err.response?.data?.error || 'Failed to accept request');
+      setActionLoading(prev => ({ ...prev, [id]: false }));
+    }
+  };
+
+  const handleRejectRequest = async (notif) => {
+    const id = notif._id;
+    setActionLoading(prev => ({ ...prev, [id]: true }));
+    try {
+      await api.post(`/bond/reject/${notif.sender._id}`);
+      await fetchNotifications();
+    } catch (err) {
+      console.error('Reject failed', err);
+      alert(err.response?.data?.error || 'Failed to reject request');
+      setActionLoading(prev => ({ ...prev, [id]: false }));
     }
   };
 
@@ -138,52 +185,118 @@ const Notifications = () => {
           </div>
         ) : (
           <ul className="space-y-3">
-            {notifications.map(notif => (
-              <li key={notif._id}>
-                <button
-                  onClick={() => handleNotificationClick(notif)}
-                  className={`w-full text-left p-4 rounded-xl transition-all duration-200 flex items-start space-x-3 ${
-                    !notif.read
-                      ? 'bg-rose-50/80 hover:bg-rose-100'
-                      : 'bg-white/80 hover:bg-gray-50'
-                  }`}
-                >
-                  {/* Avatar */}
-                  <div className="relative flex-shrink-0">
-                    <div className="h-10 w-10 rounded-full bg-gradient-to-br from-rose-400 to-pink-500 flex items-center justify-center text-white font-semibold text-sm shadow-sm">
-                      {notif.sender?.username?.charAt(0).toUpperCase() || '?'}
+            {notifications.map(notif => {
+              // Determine if current user already follows the sender (for follow notifications)
+              const alreadyFollowing = user?.following?.some(
+                followId => followId === notif.sender?._id
+              );
+
+              return (
+                <li key={notif._id}>
+                  <div
+                    className={`w-full p-4 rounded-xl transition-all duration-200 flex items-start space-x-3 ${
+                      !notif.read
+                        ? 'bg-rose-50/80'
+                        : 'bg-white/80'
+                    }`}
+                  >
+                    {/* Avatar and main content (clickable) */}
+                    <div
+                      className="flex-1 flex items-start space-x-3 cursor-pointer"
+                      onClick={() => handleNotificationClick(notif)}
+                    >
+                      <div className="relative flex-shrink-0">
+                        <div className="h-10 w-10 rounded-full bg-gradient-to-br from-rose-400 to-pink-500 flex items-center justify-center text-white font-semibold text-sm shadow-sm">
+                          {notif.sender?.username?.charAt(0).toUpperCase() || '?'}
+                        </div>
+                        {/* Type icon badge */}
+                        <div className="absolute -bottom-1 -right-1 h-5 w-5 rounded-full bg-white shadow-sm flex items-center justify-center">
+                          {getIcon(notif.type)}
+                        </div>
+                      </div>
+
+                      <div className="flex-1 min-w-0">
+                        <p className="text-sm text-gray-800">
+                          <span className="font-semibold">{notif.sender?.username}</span>{' '}
+                          <span className="text-gray-600">
+                            {notif.type === 'like' && 'liked your photo'}
+                            {notif.type === 'comment' && 'commented on your photo'}
+                            {notif.type === 'follow' && 'started following you'}
+                            {notif.type === 'bond_request' && 'sent you a love request'}
+                            {notif.type === 'bond_accept' && 'accepted your love request'}
+                          </span>
+                        </p>
+                        <div className="flex items-center space-x-2 mt-1">
+                          <Clock className="w-3 h-3 text-gray-400" />
+                          <span className="text-xs text-gray-400">{formatTime(notif.createdAt)}</span>
+                        </div>
+                      </div>
                     </div>
-                    {/* Type icon badge */}
-                    <div className="absolute -bottom-1 -right-1 h-5 w-5 rounded-full bg-white shadow-sm flex items-center justify-center">
-                      {getIcon(notif.type)}
+
+                    {/* Action buttons */}
+                    <div className="flex items-center space-x-2">
+                      {notif.type === 'follow' && !alreadyFollowing && (
+                        notif.followedBack ? (
+                          <button
+                            disabled
+                            className="px-3 py-1.5 text-xs font-medium bg-gray-200 text-gray-500 rounded-full cursor-default flex items-center space-x-1"
+                          >
+                            <Check className="w-3 h-3" />
+                            <span>Following</span>
+                          </button>
+                        ) : (
+                          <button
+                            onClick={() => handleFollowBack(notif)}
+                            disabled={actionLoading[notif._id]}
+                            className="px-3 py-1.5 text-xs font-medium bg-rose-100 text-rose-600 rounded-full hover:bg-rose-200 transition disabled:opacity-50 flex items-center space-x-1"
+                          >
+                            {actionLoading[notif._id] ? (
+                              <Loader2 className="w-3 h-3 animate-spin" />
+                            ) : (
+                              <UserPlus className="w-3 h-3" />
+                            )}
+                            <span>Follow back</span>
+                          </button>
+                        )
+                      )}
+
+                      {notif.type === 'bond_request' && (
+                        <>
+                          <button
+                            onClick={() => handleAcceptRequest(notif)}
+                            disabled={actionLoading[notif._id]}
+                            className="p-2 bg-emerald-100 text-emerald-600 rounded-full hover:bg-emerald-200 transition disabled:opacity-50"
+                            title="Accept"
+                          >
+                            {actionLoading[notif._id] ? (
+                              <Loader2 className="w-4 h-4 animate-spin" />
+                            ) : (
+                              <Check className="w-4 h-4" />
+                            )}
+                          </button>
+                          <button
+                            onClick={() => handleRejectRequest(notif)}
+                            disabled={actionLoading[notif._id]}
+                            className="p-2 bg-rose-100 text-rose-600 rounded-full hover:bg-rose-200 transition disabled:opacity-50"
+                            title="Reject"
+                          >
+                            {actionLoading[notif._id] ? (
+                              <Loader2 className="w-4 h-4 animate-spin" />
+                            ) : (
+                              <X className="w-4 h-4" />
+                            )}
+                          </button>
+                        </>
+                      )}
+
+                      {!notif.read && (
+                        <span className="w-2 h-2 bg-rose-500 rounded-full animate-pulse"></span>
+                      )}
                     </div>
                   </div>
-
-                  {/* Content */}
-                  <div className="flex-1 min-w-0">
-                    <p className="text-sm text-gray-800">
-                      <span className="font-semibold">{notif.sender?.username}</span>{' '}
-                      <span className="text-gray-600">
-                        {notif.type === 'like' && 'liked your photo'}
-                        {notif.type === 'comment' && 'commented on your photo'}
-                        {notif.type === 'follow' && 'started following you'}
-                        {notif.type === 'bond_request' && 'sent you a love request'}
-                        {notif.type === 'bond_accept' && 'accepted your love request'}
-                      </span>
-                    </p>
-                    <div className="flex items-center space-x-2 mt-1">
-                      <Clock className="w-3 h-3 text-gray-400" />
-                      <span className="text-xs text-gray-400">{formatTime(notif.createdAt)}</span>
-                    </div>
-                  </div>
-
-                  {/* Unread indicator */}
-                  {!notif.read && (
-                    <span className="w-2 h-2 bg-rose-500 rounded-full mt-2 animate-pulse"></span>
-                  )}
-                </button>
-              </li>
-            ))}
+                </li>
+              );
+            })}
           </ul>
         )}
       </div>
