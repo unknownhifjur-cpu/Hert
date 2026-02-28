@@ -15,7 +15,6 @@ const Profile = () => {
   const { user: currentUser } = useContext(AuthContext);
   const [profileUser, setProfileUser] = useState(null);
   const [photos, setPhotos] = useState([]);
-  const [savedPhotos, setSavedPhotos] = useState([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState('');
   const [followLoading, setFollowLoading] = useState(false);
@@ -44,16 +43,6 @@ const Profile = () => {
       ]);
       setProfileUser(userRes.data);
       setPhotos(photosRes.data);
-      
-      // Fetch saved photos if it's own profile
-      if (currentUser?.username === username) {
-        try {
-          const savedRes = await api.get('/users/saved/photos');
-          setSavedPhotos(savedRes.data);
-        } catch (err) {
-          console.error('Error fetching saved photos:', err);
-        }
-      }
     } catch (err) {
       console.error('Error fetching profile:', err);
       setError('User not found');
@@ -391,7 +380,7 @@ const Profile = () => {
           </div>
         </div>
 
-        {/* Tabs - Fixed with both Posts and Saved tabs */}
+        {/* Tabs */}
         <div className="flex border-b border-rose-100 mb-6">
           <button
             onClick={() => setActiveTab('posts')}
@@ -403,25 +392,10 @@ const Profile = () => {
           >
             <Grid className="w-4 h-4" />
             <span>Posts</span>
-          </button>
-          
-          {/* Only show Saved tab for own profile */}
-          {isOwnProfile && (
-            <button
-              onClick={() => setActiveTab('saved')}
-              className={`flex items-center space-x-2 px-6 py-3 text-sm font-medium transition border-b-2 ${
-                activeTab === 'saved'
-                  ? 'border-rose-500 text-rose-600'
-                  : 'border-transparent text-gray-500 hover:text-gray-700'
-              }`}
-            >
-              <Bookmark className="w-4 h-4" />
-              <span>Saved</span>
-            </button>
-          )}
+        </button>
         </div>
 
-        {/* Posts Tab */}
+        {/* Photo Grid */}
         {activeTab === 'posts' && (
           <>
             <div className="mb-4 flex items-center justify-between">
@@ -477,86 +451,6 @@ const Profile = () => {
                     {/* Caption preview */}
                     {photo.caption && (
                       <div className="absolute top-3 left-3 right-3">
-                        <p className="text-white text-xs bg-black/50 backdrop-blur-sm px-2 py-1 rounded-lg truncate opacity-0 group-hover:opacity-100 transition-opacity duration-300">
-                          {photo.caption}
-                        </p>
-                      </div>
-                    )}
-                    
-                    {/* Stats overlay */}
-                    <div className="absolute bottom-3 left-3 right-3 flex items-center justify-between text-white transform translate-y-2 group-hover:translate-y-0 transition-transform duration-300">
-                      <div className="flex items-center space-x-3">
-                        <span className="flex items-center space-x-1 text-sm bg-black/30 backdrop-blur-sm px-2 py-1 rounded-lg">
-                          <Heart className="w-3.5 h-3.5" fill="white" />
-                          <span>{photo.likes?.length || 0}</span>
-                        </span>
-                        <span className="flex items-center space-x-1 text-sm bg-black/30 backdrop-blur-sm px-2 py-1 rounded-lg">
-                          <MessageSquare className="w-3.5 h-3.5" />
-                          <span>{photo.comments?.length || 0}</span>
-                        </span>
-                      </div>
-                      <ChevronRight className="w-4 h-4 bg-black/30 backdrop-blur-sm rounded-full p-1" />
-                    </div>
-                  </div>
-                ))}
-              </div>
-            )}
-          </>
-        )}
-
-        {/* Saved Tab - Now properly implemented */}
-        {activeTab === 'saved' && isOwnProfile && (
-          <>
-            <div className="mb-4 flex items-center justify-between">
-              <h2 className="text-lg font-semibold text-gray-800 flex items-center space-x-2">
-                <Bookmark className="w-5 h-5 text-rose-500" />
-                <span>Saved Moments</span>
-              </h2>
-              {savedPhotos.length > 0 && (
-                <span className="text-sm text-gray-400 bg-white/60 px-3 py-1 rounded-full">
-                  {savedPhotos.length} {savedPhotos.length === 1 ? 'saved' : 'saved'}
-                </span>
-              )}
-            </div>
-
-            {savedPhotos.length === 0 ? (
-              <div className="text-center py-16 bg-white/60 backdrop-blur-sm rounded-3xl shadow-lg border border-rose-100">
-                <div className="relative w-24 h-24 mx-auto mb-4">
-                  <div className="absolute inset-0 bg-rose-100 rounded-full animate-pulse"></div>
-                  <Bookmark className="relative w-12 h-12 text-rose-400 top-1/2 left-1/2 transform -translate-x-1/2 -translate-y-1/2" />
-                </div>
-                <p className="text-gray-700 text-lg mb-2">No saved moments yet</p>
-                <p className="text-gray-400">
-                  When you save photos, they'll appear here
-                </p>
-              </div>
-            ) : (
-              <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-4 md:gap-6">
-                {savedPhotos.map(photo => (
-                  <div
-                    key={photo._id}
-                    className="relative aspect-square group cursor-pointer overflow-hidden rounded-2xl bg-white shadow-lg hover:shadow-2xl transition-all duration-300 transform hover:-translate-y-1"
-                    onClick={() => navigate(`/photo/${photo._id}`)}
-                  >
-                    <img
-                      src={photo.imageUrl}
-                      alt={photo.caption || 'Saved photo'}
-                      className="w-full h-full object-cover transition-transform duration-700 group-hover:scale-110"
-                    />
-                    
-                    {/* Gradient overlay */}
-                    <div className="absolute inset-0 bg-gradient-to-t from-black/70 via-black/20 to-transparent opacity-0 group-hover:opacity-100 transition-opacity duration-300" />
-                    
-                    {/* Saved badge */}
-                    <div className="absolute top-3 right-3">
-                      <div className="bg-rose-500 text-white p-1.5 rounded-full shadow-lg">
-                        <Bookmark className="w-3 h-3 fill-white" />
-                      </div>
-                    </div>
-                    
-                    {/* Caption preview */}
-                    {photo.caption && (
-                      <div className="absolute top-3 left-3 right-10">
                         <p className="text-white text-xs bg-black/50 backdrop-blur-sm px-2 py-1 rounded-lg truncate opacity-0 group-hover:opacity-100 transition-opacity duration-300">
                           {photo.caption}
                         </p>

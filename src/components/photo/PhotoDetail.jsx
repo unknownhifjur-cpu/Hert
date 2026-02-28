@@ -92,11 +92,6 @@ const PhotoDetail = () => {
     document.body.removeChild(link);
   };
 
-  const handleSave = () => {
-    setSaved(!saved);
-    // Add API call for save functionality
-  };
-
   const shareUrls = {
     whatsapp: `https://wa.me/?text=${encodeURIComponent(photo?.caption || 'Check this photo on HeartLock!')}%20${encodeURIComponent(photo?.imageUrl)}`,
     facebook: `https://www.facebook.com/sharer/sharer.php?u=${encodeURIComponent(photo?.imageUrl)}`,
@@ -166,17 +161,7 @@ const PhotoDetail = () => {
           </button>
           
           <div className="flex items-center space-x-2">
-            <button
-              onClick={handleSave}
-              className={`p-2 rounded-full transition ${
-                saved 
-                  ? 'bg-rose-500 text-white' 
-                  : 'bg-white/80 backdrop-blur-sm border border-rose-100 text-gray-600 hover:text-rose-600'
-              }`}
-              title={saved ? 'Saved' : 'Save'}
-            >
-              <Bookmark className={`w-5 h-5 ${saved ? 'fill-white' : ''}`} />
-            </button>
+            
             
             <div className="relative">
               <button
