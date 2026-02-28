@@ -2,6 +2,7 @@ import React, { useContext, useState, useEffect, useRef } from 'react';
 import { Link, useNavigate, useLocation } from 'react-router-dom';
 import { motion, AnimatePresence } from 'framer-motion';
 import { AuthContext } from '../../context/AuthContext';
+import { useSocket } from '../../context/SocketContext';
 import {
   Home,
   HeartHandshake,
@@ -19,12 +20,14 @@ import api from '../../utils/api';
 
 const Navbar = () => {
   const { user } = useContext(AuthContext);
+  const socket = useSocket();
   const navigate = useNavigate();
   const location = useLocation();
   const [notificationsOpen, setNotificationsOpen] = useState(false);
   const [showBottomNav, setShowBottomNav] = useState(true);
   const [notifications, setNotifications] = useState([]);
   const [unreadCount, setUnreadCount] = useState(0);
+  const [unreadChatCount, setUnreadChatCount] = useState(0);
   const lastScrollY = useRef(0);
   const notificationRef = useRef(null);
 
@@ -44,7 +47,10 @@ const Navbar = () => {
   };
 
   useEffect(() => {
-    if (user) fetchNotifications();
+    if (user) {
+      fetchNotifications();
+      fetchUnreadChatCount();
+    }
   }, [user]);
 
   const fetchNotifications = async () => {
@@ -56,6 +62,39 @@ const Navbar = () => {
       console.error('Failed to fetch notifications', err);
     }
   };
+
+  const fetchUnreadChatCount = async () => {
+    try {
+      const res = await api.get('/chat/unread');
+      setUnreadChatCount(res.data.count);
+    } catch (err) {
+      console.error('Failed to fetch unread chat count', err);
+    }
+  };
+
+  useEffect(() => {
+    if (!socket || !user) return;
+
+    const handleNewMessage = (newMsg) => {
+      if (newMsg.receiver?._id === user.id && newMsg.sender?._id !== user.id) {
+        setUnreadChatCount(prev => prev + 1);
+      }
+    };
+
+    const handleMessagesRead = ({ readerId, count }) => {
+      if (readerId === user.id) {
+        setUnreadChatCount(prev => Math.max(0, prev - count));
+      }
+    };
+
+    socket.on('new-message', handleNewMessage);
+    socket.on('messages-read', handleMessagesRead);
+
+    return () => {
+      socket.off('new-message', handleNewMessage);
+      socket.off('messages-read', handleMessagesRead);
+    };
+  }, [socket, user]);
 
   const markAsRead = async (id) => {
     try {
@@ -132,7 +171,6 @@ const Navbar = () => {
     return date.toLocaleDateString();
   };
 
-  // Animation variants
   const iconVariants = {
     hover: { scale: 1.1, transition: { type: 'spring', stiffness: 400, damping: 10 } },
     tap: { scale: 0.95 },
@@ -145,11 +183,11 @@ const Navbar = () => {
 
   return (
     <>
-      {/* Main navbar – romantic gradient */}
-      <nav className="bg-gradient-to-r from-rose-50 via-white to-rose-50 shadow-sm border-b border-rose-100 sticky top-0 z-50 backdrop-blur-sm">
+      {/* Main navbar */}
+      <nav className="bg-gradient-to-r from-rose-50 to-white shadow-sm border-b border-rose-100 sticky top-0 z-50">
         <div className="container mx-auto px-4 py-3">
           <div className="flex items-center justify-between">
-            {/* Logo with heart accent – animated */}
+            {/* Logo */}
             <motion.div whileHover="hover" whileTap="tap" variants={iconVariants}>
               <Link to="/" className="flex items-center space-x-2 group">
                 <span className="text-2xl font-bold bg-gradient-to-r from-rose-600 to-rose-400 bg-clip-text text-transparent">
@@ -162,7 +200,7 @@ const Navbar = () => {
             <div className="hidden md:block flex-1 max-w-md mx-4">
               <Link
                 to="/search"
-                className="flex items-center space-x-2 text-gray-500 hover:text-rose-600 transition border border-rose-200 rounded-full px-4 py-2 bg-white/50 backdrop-blur-sm hover:bg-white/80"
+                className="flex items-center space-x-2 text-gray-500 hover:text-rose-600 transition border border-rose-200 rounded-full px-4 py-2 bg-white hover:bg-rose-50"
               >
                 <Search className="h-5 w-5" />
                 <span className="text-sm">Search users...</span>
@@ -186,8 +224,8 @@ const Navbar = () => {
                       to={path}
                       className={`px-4 py-2 rounded-full transition-all duration-300 ${
                         isItemActive
-                          ? 'text-rose-600 bg-rose-100/80'
-                          : 'text-gray-600 hover:text-rose-600 hover:bg-rose-50/50'
+                          ? 'text-rose-600 bg-rose-100'
+                          : 'text-gray-600 hover:text-rose-600 hover:bg-rose-50'
                       }`}
                     >
                       {item}
@@ -206,8 +244,8 @@ const Navbar = () => {
 
               <span className="text-sm text-rose-400 font-light italic">Welcome, {user.username}!</span>
 
-              {/* Chat icon */}
-              <motion.div whileHover="hover" whileTap="tap" variants={iconVariants}>
+              {/* Chat icon with unread badge */}
+              <motion.div whileHover="hover" whileTap="tap" variants={iconVariants} className="relative">
                 <Link
                   to="/chat"
                   className="p-2 text-gray-500 hover:text-rose-600 hover:bg-rose-50 rounded-full transition block"
@@ -215,6 +253,11 @@ const Navbar = () => {
                 >
                   <MessageCircle className="w-5 h-5" />
                 </Link>
+                {unreadChatCount > 0 && (
+                  <span className="absolute -top-1 -right-1 bg-rose-500 text-white text-xs rounded-full w-5 h-5 flex items-center justify-center animate-pulse">
+                    {unreadChatCount > 9 ? '9+' : unreadChatCount}
+                  </span>
+                )}
               </motion.div>
 
               {/* Notifications / Settings */}
@@ -247,7 +290,8 @@ const Navbar = () => {
 
             {/* Mobile right icons */}
             <div className="md:hidden flex items-center space-x-2">
-              <motion.div whileHover="hover" whileTap="tap" variants={iconVariants}>
+              {/* Chat icon with badge on mobile */}
+              <motion.div whileHover="hover" whileTap="tap" variants={iconVariants} className="relative">
                 <Link
                   to="/chat"
                   className="p-2 text-gray-500 hover:text-rose-600 hover:bg-rose-50 rounded-full transition block"
@@ -255,7 +299,13 @@ const Navbar = () => {
                 >
                   <MessageCircle className="w-6 h-6" />
                 </Link>
+                {unreadChatCount > 0 && (
+                  <span className="absolute -top-1 -right-1 bg-rose-500 text-white text-xs rounded-full w-5 h-5 flex items-center justify-center animate-pulse">
+                    {unreadChatCount > 9 ? '9+' : unreadChatCount}
+                  </span>
+                )}
               </motion.div>
+
               <div className="relative" ref={notificationRef}>
                 {isOwnProfilePage() ? (
                   <motion.div whileHover="hover" whileTap="tap" variants={iconVariants}>
@@ -283,9 +333,9 @@ const Navbar = () => {
                     </button>
                   </motion.div>
                 )}
-                {/* Notifications dropdown (unchanged) */}
+                {/* Notifications dropdown */}
                 {notificationsOpen && !isOwnProfilePage() && (
-                  <div className="absolute right-0 mt-2 w-80 sm:w-96 bg-white/90 backdrop-blur-lg rounded-2xl shadow-xl border border-rose-100 overflow-hidden z-50 animate-slideDown">
+                  <div className="absolute right-0 mt-2 w-80 sm:w-96 bg-white rounded-2xl shadow-xl border border-rose-100 overflow-hidden z-50 animate-slideDown">
                     <div className="p-4 border-b border-rose-100 flex justify-between items-center bg-gradient-to-r from-rose-50 to-white">
                       <span className="font-semibold text-gray-800">Notifications</span>
                       {unreadCount > 0 && (
@@ -354,9 +404,9 @@ const Navbar = () => {
         </div>
       </nav>
 
-      {/* Bottom navigation – with animated icons */}
+      {/* Bottom navigation */}
       <div
-        className={`md:hidden fixed bottom-0 left-0 right-0 bg-white/80 backdrop-blur-lg border-t border-rose-100 shadow-lg z-50 transform transition-transform duration-300 ${
+        className={`md:hidden fixed bottom-0 left-0 right-0 bg-white border-t border-rose-100 shadow-lg z-50 transform transition-transform duration-300 ${
           showBottomNav ? 'translate-y-0' : 'translate-y-full'
         }`}
       >
@@ -396,7 +446,8 @@ const Navbar = () => {
         </div>
       </div>
 
-      <div className="md:hidden h-0" /> {/* Spacer for fixed bottom nav */}
+      {/* Spacer for fixed bottom nav */}
+      <div className="md:hidden h-0" />
 
       <style>{`
         @keyframes slideDown {
