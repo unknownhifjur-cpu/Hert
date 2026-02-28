@@ -189,7 +189,7 @@ const Chat = () => {
 
   if (loading && !userId) {
     return (
-      <div className="min-h-screen flex items-center justify-center bg-gradient-to-br from-rose-50 to-pink-50">
+      <div className="min-h-screen bg-gradient-to-br from-rose-50 to-pink-50 flex items-center justify-center">
         <div className="relative">
           <div className="w-16 h-16 border-4 border-rose-200 border-t-rose-500 rounded-full animate-spin"></div>
           <Heart className="absolute top-1/2 left-1/2 transform -translate-x-1/2 -translate-y-1/2 w-6 h-6 text-rose-500 animate-pulse" />
@@ -198,76 +198,75 @@ const Chat = () => {
     );
   }
 
-  // Conversations list view with improved mobile search
+  // Conversations list view – back button now goes to home
   if (!userId) {
     return (
       <div className="min-h-screen bg-gradient-to-br from-rose-50 via-white to-pink-50">
         {/* Sticky header with search */}
         <div className="sticky top-0 z-10 bg-white/80 backdrop-blur-md border-b border-rose-100 pt-12 pb-3 px-4">
           <div className="max-w-2xl mx-auto">
-            {/* Back button and title */}
             <div className="flex items-center justify-between mb-3">
               <div className="flex items-center space-x-3">
                 <button
-                  onClick={() => navigate(-1)}
+                  onClick={() => navigate('/')}
                   className="p-2 text-gray-600 hover:text-rose-600 rounded-full hover:bg-rose-100 transition"
                 >
                   <ArrowLeft className="w-5 h-5" />
                 </button>
-                <h1 className="text-xl font-bold text-gray-800">Chats</h1>
+                <h1 className="text-xl font-bold bg-gradient-to-r from-rose-600 to-pink-600 bg-clip-text text-transparent">
+                  Heart Chats
+                </h1>
               </div>
-              <span className="text-sm text-gray-500 bg-white/60 px-3 py-1 rounded-full">
+              <span className="text-sm text-rose-400 bg-rose-50 px-3 py-1 rounded-full">
                 {filteredConversations.length} chats
               </span>
             </div>
 
-            {/* Mobile-optimized search bar */}
             <div className="relative">
               <div className="absolute inset-y-0 left-3 flex items-center pointer-events-none">
-                <Search className="w-4 h-4 text-gray-400" />
+                <Search className="w-4 h-4 text-rose-300" />
               </div>
               <input
                 type="text"
                 placeholder="Search conversations..."
                 value={searchQuery}
                 onChange={(e) => setSearchQuery(e.target.value)}
-                className="w-full pl-10 pr-10 py-3.5 bg-gray-100 border-0 rounded-xl text-sm focus:ring-2 focus:ring-rose-300 focus:bg-white transition"
+                className="w-full pl-10 pr-10 py-3.5 bg-rose-50/50 border border-rose-100 rounded-xl text-sm focus:ring-2 focus:ring-rose-300 focus:bg-white transition"
               />
               {searchQuery && (
                 <button
                   onClick={() => setSearchQuery('')}
-                  className="absolute inset-y-0 right-3 flex items-center text-gray-400 hover:text-gray-600"
+                  className="absolute inset-y-0 right-3 flex items-center text-rose-400 hover:text-rose-600"
                 >
                   <X className="w-4 h-4" />
                 </button>
               )}
             </div>
 
-            {/* Search status */}
             {searchQuery && (
-              <div className="mt-2 text-xs text-gray-500">
+              <div className="mt-2 text-xs text-rose-400">
                 Found {filteredConversations.length} {filteredConversations.length === 1 ? 'chat' : 'chats'}
               </div>
             )}
           </div>
         </div>
 
-        {/* Conversations list - scrollable area */}
+        {/* Conversations list */}
         <div className="px-4 pb-20">
           <div className="max-w-2xl mx-auto mt-4">
             {filteredConversations.length === 0 ? (
-              <div className="text-center py-16 bg-white/80 backdrop-blur-sm rounded-3xl shadow-lg border border-rose-100 animate-fadeIn">
+              <div className="text-center py-16 bg-white/60 backdrop-blur-sm rounded-3xl shadow-lg border border-rose-100 animate-fadeIn">
                 <div className="relative w-24 h-24 mx-auto mb-4">
                   <div className="absolute inset-0 bg-rose-100 rounded-full animate-pulse"></div>
-                  <Search className="relative w-12 h-12 text-rose-400 top-1/2 left-1/2 transform -translate-x-1/2 -translate-y-1/2" />
+                  <Heart className="relative w-12 h-12 text-rose-400 top-1/2 left-1/2 transform -translate-x-1/2 -translate-y-1/2" />
                 </div>
-                <p className="text-gray-600 text-lg mb-2">No conversations found</p>
+                <p className="text-gray-600 text-lg mb-2">No conversations yet</p>
                 <p className="text-gray-400">
                   {searchQuery ? 'Try a different search term' : 'Start a new conversation'}
                 </p>
               </div>
             ) : (
-              <ul className="space-y-2 animate-fadeIn">
+              <ul className="space-y-3 animate-fadeIn">
                 {filteredConversations.map(conv => (
                   <li key={conv.user._id}>
                     <Link
@@ -293,11 +292,11 @@ const Chat = () => {
                           <p className="font-semibold text-gray-800 group-hover:text-rose-600 transition truncate">
                             {conv.user.username}
                           </p>
-                          <span className="text-xs text-gray-400 ml-2 flex-shrink-0">
+                          <span className="text-xs text-rose-400 ml-2 flex-shrink-0">
                             {formatMessageTime(conv.lastTime)}
                           </span>
                         </div>
-                        <p className={`text-sm truncate mt-1 ${conv.unread ? 'text-gray-800 font-medium' : 'text-gray-500'}`}>
+                        <p className={`text-sm truncate mt-1 ${conv.unread ? 'text-gray-800 font-medium' : 'text-rose-400'}`}>
                           {conv.lastMessage}
                         </p>
                       </div>
@@ -317,7 +316,7 @@ const Chat = () => {
       <div className="min-h-screen flex items-center justify-center bg-gradient-to-br from-rose-50 to-pink-50">
         <div className="relative">
           <div className="w-16 h-16 border-4 border-rose-200 border-t-rose-500 rounded-full animate-spin"></div>
-          <Lock className="absolute top-1/2 left-1/2 transform -translate-x-1/2 -translate-y-1/2 w-6 h-6 text-rose-500" />
+          <Heart className="absolute top-1/2 left-1/2 transform -translate-x-1/2 -translate-y-1/2 w-6 h-6 text-rose-500 animate-pulse" />
         </div>
       </div>
     );
@@ -327,8 +326,8 @@ const Chat = () => {
 
   return (
     <div className="h-screen bg-gradient-to-br from-rose-50 via-white to-pink-50 flex flex-col">
-      {/* Header */}
-      <div className="bg-white/80 backdrop-blur-sm border-b border-rose-100 shadow-sm">
+      {/* Sticky header with clear chat button (always on top) */}
+      <div className="sticky top-0 z-20 bg-white/80 backdrop-blur-sm border-b border-rose-100 shadow-sm">
         <div className="max-w-3xl mx-auto w-full px-4">
           <div className="flex items-center justify-between py-3">
             <div className="flex items-center space-x-3">
@@ -363,7 +362,7 @@ const Chat = () => {
                 <MoreVertical className="w-5 h-5" />
               </button>
               {showChatMenu && (
-                <div className="absolute right-0 mt-2 w-48 bg-white rounded-xl shadow-lg border border-rose-100 overflow-hidden z-10">
+                <div className="absolute right-0 mt-2 w-48 bg-white rounded-xl shadow-lg border border-rose-100 overflow-hidden z-30">
                   <button
                     onClick={clearChat}
                     className="w-full text-left px-4 py-3 text-sm text-rose-600 hover:bg-rose-50 transition flex items-center space-x-2"
@@ -378,7 +377,7 @@ const Chat = () => {
         </div>
       </div>
 
-      {/* Messages area */}
+      {/* Messages area with subtle heart pattern */}
       <div className="flex-1 overflow-y-auto px-4 py-6" style={{ backgroundImage: 'radial-gradient(circle at 10px 10px, rgba(244, 63, 94, 0.05) 2px, transparent 0)', backgroundSize: '30px 30px' }}>
         <div className="max-w-3xl mx-auto">
           {messages.length === 0 ? (
@@ -402,7 +401,7 @@ const Chat = () => {
                 if (item.type === 'date') {
                   return (
                     <div key={`date-${index}`} className="flex justify-center my-4">
-                      <span className="px-4 py-1.5 bg-white/70 backdrop-blur-sm text-gray-600 text-xs rounded-full shadow-sm border border-rose-100">
+                      <span className="px-4 py-1.5 bg-white/70 backdrop-blur-sm text-rose-500 text-xs rounded-full shadow-sm border border-rose-100">
                         {isToday(item.date) ? 'Today' : item.date}
                       </span>
                     </div>
@@ -457,7 +456,7 @@ const Chat = () => {
                       <>
                         <div className={`flex flex-col max-w-[70%] ${isMe ? 'items-end' : 'items-start'}`}>
                           {msg.replyTo && (
-                            <div className="mb-1 px-3 py-1 bg-gray-100 rounded-lg text-xs text-gray-600 max-w-[200px] truncate">
+                            <div className="mb-1 px-3 py-1 bg-rose-50 rounded-lg text-xs text-rose-600 max-w-[200px] truncate border border-rose-100">
                               ↪ Replying to: {msg.replyTo.message}
                             </div>
                           )}
@@ -471,7 +470,7 @@ const Chat = () => {
                             <p className="text-sm whitespace-pre-wrap break-words leading-relaxed">
                               {msg.message}
                             </p>
-                            <div className={`flex items-center justify-end space-x-1 mt-1 text-xs ${isMe ? 'text-rose-200' : 'text-gray-400'}`}>
+                            <div className={`flex items-center justify-end space-x-1 mt-1 text-xs ${isMe ? 'text-rose-200' : 'text-rose-400'}`}>
                               <span>{formatMessageTime(msg.createdAt)}</span>
                               {isMe && (
                                 <span>
@@ -560,7 +559,7 @@ const Chat = () => {
               value={newMessage}
               onChange={(e) => setNewMessage(e.target.value)}
               placeholder="Type a secure message..."
-              className="flex-1 py-3 px-3 bg-transparent focus:outline-none text-gray-700 placeholder-gray-400"
+              className="flex-1 py-3 px-3 bg-transparent focus:outline-none text-gray-700 placeholder-rose-300"
               disabled={sending}
             />
             
@@ -580,8 +579,8 @@ const Chat = () => {
         
         {/* Encryption notice */}
         <div className="flex items-center justify-center space-x-1 mt-2">
-          <Lock className="w-3 h-3 text-gray-400" />
-          <p className="text-xs text-gray-400">End-to-end encrypted</p>
+          <Lock className="w-3 h-3 text-rose-300" />
+          <p className="text-xs text-rose-300">End-to-end encrypted</p>
         </div>
       </div>
 
