@@ -16,6 +16,7 @@ import Chat from './components/chat/Chat';
 import InstallPrompt from './components/pwa/InstallPrompt';
 import OfflineIndicator from './components/pwa/OfflineIndicator';
 import SearchPage from './components/search/SearchPage';
+import Notifications from './pages/Notifications';
 
 // Premium Loader Component - Updated Romantic Style
 const PremiumLoader = () => {
@@ -175,6 +176,7 @@ function AppRoutes() {
         <Route path="/settings" element={user ? <Settings /> : <Navigate to="/login" />} />
         <Route path="/bond" element={user ? <Bond /> : <Navigate to="/login" />} />
         <Route path="/search" element={<SearchPage />} />
+        <Route path="/notifications" element={<Notifications />} />
 
         {/* Profile routes – edit is more specific */}
         <Route path="/profile/:username/edit" element={user ? <EditProfile /> : <Navigate to="/login" />} />
