@@ -1,6 +1,9 @@
-import React, { useState, useContext } from 'react';
+import React, { useState, useContext, useRef } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { Camera, X, UploadCloud, Image as ImageIcon } from 'lucide-react';
+import { 
+  Camera, X, UploadCloud, Image as ImageIcon, 
+  Heart, Send, Sparkles 
+} from 'lucide-react';
 import { AuthContext } from '../../context/AuthContext';
 import api from '../../utils/api';
 
@@ -10,11 +13,20 @@ const Upload = () => {
   const [image, setImage] = useState(null);
   const [preview, setPreview] = useState('');
   const [loading, setLoading] = useState(false);
+  const fileInputRef = useRef(null);
   const navigate = useNavigate();
 
   const handleImageChange = (e) => {
     const file = e.target.files[0];
     if (file) {
+      if (!file.type.startsWith('image/')) {
+        alert('Please select an image file');
+        return;
+      }
+      if (file.size > 10 * 1024 * 1024) {
+        alert('File size should be less than 10MB');
+        return;
+      }
       setImage(file);
       setPreview(URL.createObjectURL(file));
     }
@@ -23,9 +35,7 @@ const Upload = () => {
   const handleRemoveImage = () => {
     setImage(null);
     setPreview('');
-    // Reset file input
-    const fileInput = document.getElementById('file-upload');
-    if (fileInput) fileInput.value = '';
+    if (fileInputRef.current) fileInputRef.current.value = '';
   };
 
   const handleSubmit = async (e) => {
@@ -49,155 +59,143 @@ const Upload = () => {
   };
 
   return (
-    <div className="min-h-screen bg-gradient-to-b from-gray-50 to-white py-8">
-      <div className="max-w-3xl mx-auto px-4">
-        <div className="bg-white rounded-2xl shadow-xl overflow-hidden">
-          {/* Header */}
-          <div className="p-6 border-b border-gray-100">
-            <h2 className="text-2xl font-bold text-gray-800 flex items-center space-x-2">
-              <Camera className="w-6 h-6 text-rose-500" />
-              <span>Create new post</span>
-            </h2>
-          </div>
+    <div className="min-h-screen bg-gradient-to-br from-rose-50 via-white to-pink-50 py-8 px-4">
+      <div className="max-w-4xl mx-auto">
+        {/* Header */}
+        <div className="text-center mb-8">
+          <h1 className="text-3xl md:text-4xl font-bold bg-gradient-to-r from-rose-600 to-pink-600 bg-clip-text text-transparent mb-2">
+            Create New Post
+          </h1>
+          <p className="text-gray-500">Share your special moment with the world</p>
+        </div>
 
-          <div className="flex flex-col md:flex-row">
-            {/* Left: Image upload area */}
-            <div className="md:w-1/2 p-6 border-r border-gray-100">
-              <div className="relative h-full min-h-[300px] flex items-center justify-center">
+        {/* Main Card */}
+        <div className="bg-white/80 backdrop-blur-sm rounded-3xl shadow-2xl border border-rose-100 overflow-hidden">
+          <div className="p-6 md:p-8">
+            {/* Image Upload Area */}
+            <div className="mb-8">
+              <div className="relative">
                 <input
-                  id="file-upload"
+                  ref={fileInputRef}
                   type="file"
                   accept="image/*"
                   onChange={handleImageChange}
                   className="absolute inset-0 w-full h-full opacity-0 cursor-pointer z-10"
-                  required={!image}
                 />
-                <div
-                  className={`w-full h-full border-2 border-dashed rounded-xl p-6 text-center transition-all flex items-center justify-center ${
-                    preview
-                      ? 'border-rose-300 bg-rose-50/50'
-                      : 'border-gray-300 hover:border-rose-300 hover:bg-rose-50/30'
-                  }`}
-                >
-                  {preview ? (
-                    <div className="relative w-full">
-                      <img
-                        src={preview}
-                        alt="Preview"
-                        className="max-h-64 mx-auto rounded-lg shadow-md object-contain"
-                      />
-                      <button
-                        type="button"
-                        onClick={handleRemoveImage}
-                        className="absolute -top-2 -right-2 p-1 bg-white rounded-full shadow-md text-gray-600 hover:text-rose-600 transition"
-                        aria-label="Remove image"
-                      >
-                        <X className="w-5 h-5" />
-                      </button>
+                
+                {preview ? (
+                  <div className="relative group">
+                    <img
+                      src={preview}
+                      alt="Preview"
+                      className="w-full max-h-[400px] object-contain rounded-2xl bg-rose-50/50"
+                    />
+                    <button
+                      type="button"
+                      onClick={handleRemoveImage}
+                      className="absolute top-4 right-4 p-2 bg-white/90 backdrop-blur-sm hover:bg-white rounded-full text-gray-600 hover:text-rose-600 transition shadow-lg"
+                    >
+                      <X className="w-5 h-5" />
+                    </button>
+                  </div>
+                ) : (
+                  <div className="w-full h-64 md:h-80 border-3 border-dashed border-rose-200 hover:border-rose-400 rounded-2xl bg-rose-50/30 hover:bg-rose-50 transition-all flex flex-col items-center justify-center cursor-pointer">
+                    <div className="w-16 h-16 bg-rose-100 rounded-full flex items-center justify-center mb-4">
+                      <UploadCloud className="w-8 h-8 text-rose-500" />
                     </div>
-                  ) : (
-                    <div className="space-y-3">
-                      <div className="flex justify-center text-gray-400">
-                        <ImageIcon className="w-12 h-12" />
-                      </div>
-                      <p className="text-gray-600 font-medium">
-                        Click to select a photo
-                      </p>
-                      <p className="text-sm text-gray-400">
-                        or drag and drop
-                      </p>
-                      <p className="text-xs text-gray-400">
-                        JPG, PNG, GIF up to 10MB
-                      </p>
-                    </div>
-                  )}
-                </div>
-              </div>
-            </div>
-
-            {/* Right: Caption and preview card */}
-            <div className="md:w-1/2 p-6">
-              <form onSubmit={handleSubmit} className="space-y-4">
-                {/* Caption input */}
-                <div>
-                  <label htmlFor="caption" className="block text-sm font-medium text-gray-700 mb-1">
-                    Caption
-                  </label>
-                  <textarea
-                    id="caption"
-                    rows="3"
-                    value={caption}
-                    onChange={(e) => setCaption(e.target.value)}
-                    className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-rose-200 focus:border-rose-400 transition resize-none"
-                    placeholder="Write a caption..."
-                  />
-                </div>
-
-                {/* Live preview card (how it will look in feed) */}
-                {preview && (
-                  <div className="mt-4">
-                    <p className="text-xs uppercase tracking-wider text-gray-400 mb-2">Preview</p>
-                    <div className="bg-gray-50 rounded-lg p-3 border border-gray-200">
-                      <div className="flex items-center space-x-3 mb-2">
-                        <div className="h-8 w-8 rounded-full bg-rose-100 flex items-center justify-center text-rose-600 font-semibold text-sm">
-                          {user?.username?.charAt(0).toUpperCase() || 'U'}
-                        </div>
-                        <div>
-                          <p className="font-semibold text-sm text-gray-800">{user?.username || 'username'}</p>
-                        </div>
-                      </div>
-                      <img
-                        src={preview}
-                        alt="Preview"
-                        className="w-full max-h-48 object-cover rounded-lg"
-                      />
-                      {caption && (
-                        <p className="text-sm text-gray-700 mt-2">
-                          <span className="font-semibold mr-2">{user?.username}</span>
-                          {caption}
-                        </p>
-                      )}
-                      <div className="flex items-center text-xs text-gray-400 mt-2 space-x-4">
-                        <span>❤️ 0 likes</span>
-                        <span>💬 0 comments</span>
-                      </div>
+                    <p className="text-gray-700 font-medium mb-1">Click to select a photo</p>
+                    <p className="text-sm text-gray-400">or drag and drop</p>
+                    <div className="flex gap-2 mt-4">
+                      <span className="px-3 py-1 bg-rose-100 text-rose-600 text-xs rounded-full">JPG</span>
+                      <span className="px-3 py-1 bg-rose-100 text-rose-600 text-xs rounded-full">PNG</span>
+                      <span className="px-3 py-1 bg-rose-100 text-rose-600 text-xs rounded-full">Max 10MB</span>
                     </div>
                   </div>
                 )}
+              </div>
+            </div>
 
-                {/* Submit button */}
-                <button
-                  type="submit"
-                  disabled={loading || !image}
-                  className="w-full bg-rose-500 hover:bg-rose-600 text-white font-semibold py-3 px-4 rounded-lg transition disabled:opacity-50 disabled:cursor-not-allowed shadow-sm hover:shadow-md flex items-center justify-center space-x-2"
-                >
-                  {loading ? (
-                    <>
-                      <svg className="animate-spin h-5 w-5 text-white" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
-                        <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"></circle>
-                        <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
-                      </svg>
-                      <span>Sharing...</span>
-                    </>
-                  ) : (
-                    <>
-                      <UploadCloud className="w-5 h-5" />
-                      <span>Share Post</span>
-                    </>
+            {/* Caption Input */}
+            <div className="mb-8">
+              <label className="block text-sm font-medium text-gray-700 mb-2">
+                Caption
+              </label>
+              <textarea
+                rows="4"
+                value={caption}
+                onChange={(e) => setCaption(e.target.value)}
+                className="w-full px-5 py-4 bg-white border-2 border-rose-100 rounded-2xl focus:ring-4 focus:ring-rose-200 focus:border-rose-400 transition resize-none"
+                placeholder="Write a caption for your moment..."
+              />
+            </div>
+
+            {/* Preview Card */}
+            {preview && (
+              <div className="mb-8 p-4 bg-gradient-to-br from-rose-50 to-pink-50 rounded-2xl border border-rose-200">
+                <div className="flex items-center space-x-2 mb-3">
+                  <Sparkles className="w-4 h-4 text-rose-500" />
+                  <p className="text-sm font-medium text-rose-600">Preview</p>
+                </div>
+                <div className="bg-white rounded-xl p-3 shadow-sm">
+                  <div className="flex items-center space-x-3 mb-3">
+                    <div className="h-8 w-8 rounded-full bg-gradient-to-br from-rose-400 to-pink-500 flex items-center justify-center text-white font-semibold text-sm">
+                      {user?.username?.charAt(0).toUpperCase() || 'U'}
+                    </div>
+                    <p className="font-semibold text-sm text-gray-800">{user?.username || 'username'}</p>
+                  </div>
+                  <img src={preview} alt="Preview" className="w-full rounded-lg" />
+                  {caption && (
+                    <p className="text-sm text-gray-700 mt-3">
+                      <span className="font-semibold mr-2">{user?.username}</span>
+                      {caption}
+                    </p>
                   )}
-                </button>
-              </form>
+                  <div className="flex items-center space-x-4 mt-3 pt-3 border-t border-gray-100">
+                    <span className="flex items-center space-x-1 text-xs text-gray-400">
+                      <Heart className="w-4 h-4" />
+                      <span>0 likes</span>
+                    </span>
+                  </div>
+                </div>
+              </div>
+            )}
+
+            {/* Action Buttons */}
+            <div className="flex flex-col sm:flex-row gap-3">
+              <button
+                type="button"
+                onClick={() => navigate('/')}
+                className="flex-1 px-6 py-4 bg-gray-100 hover:bg-gray-200 text-gray-700 rounded-xl font-medium transition flex items-center justify-center space-x-2"
+              >
+                <X className="w-5 h-5" />
+                <span>Cancel</span>
+              </button>
+              <button
+                onClick={handleSubmit}
+                disabled={loading || !image}
+                className="flex-1 px-6 py-4 bg-gradient-to-r from-rose-500 to-pink-500 hover:from-rose-600 hover:to-pink-600 text-white rounded-xl font-medium transition disabled:opacity-50 disabled:cursor-not-allowed shadow-lg shadow-rose-500/25 flex items-center justify-center space-x-2"
+              >
+                {loading ? (
+                  <>
+                    <div className="w-5 h-5 border-2 border-white border-t-transparent rounded-full animate-spin"></div>
+                    <span>Sharing...</span>
+                  </>
+                ) : (
+                  <>
+                    <Send className="w-5 h-5" />
+                    <span>Share Post</span>
+                  </>
+                )}
+              </button>
             </div>
           </div>
 
-          {/* Footer with back link */}
-          <div className="p-4 bg-gray-50 border-t border-gray-100 text-center">
-            <button
-              onClick={() => navigate('/')}
-              className="text-sm text-gray-500 hover:text-rose-600 transition"
-            >
-              ← Cancel and go back to Feed
-            </button>
+          {/* Footer */}
+          <div className="px-6 py-4 bg-gradient-to-r from-rose-50 to-pink-50 border-t border-rose-100 text-center">
+            <p className="text-xs text-gray-400 flex items-center justify-center space-x-1">
+              <span>Your memories are secured with</span>
+              <Heart className="w-3 h-3 text-rose-400 fill-rose-400" />
+            </p>
           </div>
         </div>
       </div>

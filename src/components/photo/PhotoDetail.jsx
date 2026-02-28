@@ -2,7 +2,11 @@ import React, { useState, useEffect, useContext } from 'react';
 import { useParams, useNavigate, Link } from 'react-router-dom';
 import { AuthContext } from '../../context/AuthContext';
 import api from '../../utils/api';
-import { Heart, MessageCircle, Send, Download, Share2, Trash2, X } from 'lucide-react';
+import { 
+  Heart, MessageCircle, Send, Download, Share2, 
+  Trash2, X, ChevronLeft, MoreHorizontal, Bookmark,
+  Clock, Calendar, User, Copy, Check
+} from 'lucide-react';
 
 const PhotoDetail = () => {
   const { id } = useParams();
@@ -17,6 +21,9 @@ const PhotoDetail = () => {
   const [newComment, setNewComment] = useState('');
   const [submitting, setSubmitting] = useState(false);
   const [showShareMenu, setShowShareMenu] = useState(false);
+  const [showMoreMenu, setShowMoreMenu] = useState(false);
+  const [copied, setCopied] = useState(false);
+  const [saved, setSaved] = useState(false);
 
   const currentUserId = user?._id || user?.id;
   const isOwner = photo?.user?._id === currentUserId || photo?.user?.id === currentUserId;
@@ -69,7 +76,7 @@ const PhotoDetail = () => {
     if (!window.confirm('Delete this photo?')) return;
     try {
       await api.delete(`/photos/${id}`);
-      navigate(-1); // go back to previous page
+      navigate(-1);
     } catch (err) {
       console.error(err);
       alert('Delete failed');
@@ -79,207 +86,374 @@ const PhotoDetail = () => {
   const handleDownload = () => {
     const link = document.createElement('a');
     link.href = photo.imageUrl;
-    link.download = 'photo.jpg';
+    link.download = `heartlock-${photo.user?.username || 'photo'}.jpg`;
     document.body.appendChild(link);
     link.click();
     document.body.removeChild(link);
   };
 
+  const handleSave = () => {
+    setSaved(!saved);
+    // Add API call for save functionality
+  };
+
   const shareUrls = {
-    whatsapp: `https://wa.me/?text=${encodeURIComponent(photo?.caption || 'Check this photo!')}%20${encodeURIComponent(photo?.imageUrl)}`,
+    whatsapp: `https://wa.me/?text=${encodeURIComponent(photo?.caption || 'Check this photo on HeartLock!')}%20${encodeURIComponent(photo?.imageUrl)}`,
     facebook: `https://www.facebook.com/sharer/sharer.php?u=${encodeURIComponent(photo?.imageUrl)}`,
-    twitter: `https://twitter.com/intent/tweet?text=${encodeURIComponent(photo?.caption || 'Check this photo!')}&url=${encodeURIComponent(photo?.imageUrl)}`,
+    twitter: `https://twitter.com/intent/tweet?text=${encodeURIComponent(photo?.caption || 'Check this photo on HeartLock!')}&url=${encodeURIComponent(photo?.imageUrl)}`,
     copy: photo?.imageUrl
   };
 
-  const copyToClipboard = () => {
-    navigator.clipboard.writeText(photo.imageUrl);
-    alert('Link copied!');
+  const copyToClipboard = async () => {
+    await navigator.clipboard.writeText(photo.imageUrl);
+    setCopied(true);
+    setTimeout(() => setCopied(false), 2000);
+  };
+
+  const formatDate = (dateString) => {
+    const date = new Date(dateString);
+    return date.toLocaleDateString('en-US', { 
+      month: 'short', 
+      day: 'numeric', 
+      year: 'numeric',
+      hour: '2-digit',
+      minute: '2-digit'
+    });
   };
 
   if (loading) {
     return (
-      <div className="min-h-screen bg-gray-50 flex items-center justify-center">
-        <div className="inline-block h-8 w-8 animate-spin rounded-full border-4 border-solid border-rose-500 border-r-transparent"></div>
+      <div className="min-h-screen bg-gradient-to-br from-rose-50 via-white to-pink-50 flex items-center justify-center">
+        <div className="relative">
+          <div className="w-20 h-20 border-4 border-rose-200 border-t-rose-500 rounded-full animate-spin"></div>
+          <Heart className="absolute top-1/2 left-1/2 transform -translate-x-1/2 -translate-y-1/2 w-8 h-8 text-rose-500 animate-pulse" />
+        </div>
       </div>
     );
   }
 
   if (error || !photo) {
     return (
-      <div className="min-h-screen bg-gray-50 flex items-center justify-center">
-        <p className="text-gray-500">{error || 'Photo not found'}</p>
+      <div className="min-h-screen bg-gradient-to-br from-rose-50 via-white to-pink-50 flex items-center justify-center p-4">
+        <div className="max-w-md w-full bg-white/80 backdrop-blur-sm rounded-3xl shadow-2xl p-8 text-center border border-rose-100">
+          <div className="w-24 h-24 bg-rose-100 rounded-full flex items-center justify-center mx-auto mb-6">
+            <X className="w-12 h-12 text-rose-400" />
+          </div>
+          <h2 className="text-2xl font-bold text-gray-800 mb-2">Photo Not Found</h2>
+          <p className="text-gray-600 mb-8">This photo may have been removed or doesn't exist.</p>
+          <button
+            onClick={() => navigate('/')}
+            className="px-6 py-3 bg-rose-500 hover:bg-rose-600 text-white rounded-xl font-medium transition shadow-lg shadow-rose-500/25"
+          >
+            Go Back Home
+          </button>
+        </div>
       </div>
     );
   }
 
   return (
-    <div className="min-h-screen bg-gray-50 py-8">
-      <div className="max-w-4xl mx-auto px-4">
-        <div className="bg-white rounded-2xl shadow-xl overflow-hidden">
-          {/* Header with back button */}
-          <div className="p-4 border-b border-gray-100 flex items-center justify-between">
-            <button onClick={() => navigate(-1)} className="text-gray-500 hover:text-rose-600 transition">
-              ← Back
+    <div className="min-h-screen bg-gradient-to-br from-rose-50 via-white to-pink-50 py-6 px-4">
+      <div className="max-w-6xl mx-auto">
+        {/* Navigation Bar */}
+        <div className="flex items-center justify-between mb-4">
+          <button
+            onClick={() => navigate(-1)}
+            className="flex items-center space-x-2 px-4 py-2 bg-white/80 backdrop-blur-sm rounded-full shadow-sm hover:shadow-md transition border border-rose-100 text-gray-600 hover:text-rose-600"
+          >
+            <ChevronLeft className="w-4 h-4" />
+            <span>Back</span>
+          </button>
+          
+          <div className="flex items-center space-x-2">
+            <button
+              onClick={handleSave}
+              className={`p-2 rounded-full transition ${
+                saved 
+                  ? 'bg-rose-500 text-white' 
+                  : 'bg-white/80 backdrop-blur-sm border border-rose-100 text-gray-600 hover:text-rose-600'
+              }`}
+              title={saved ? 'Saved' : 'Save'}
+            >
+              <Bookmark className={`w-5 h-5 ${saved ? 'fill-white' : ''}`} />
             </button>
-            <div className="flex items-center space-x-3">
-              {isOwner && (
-                <button
-                  onClick={handleDelete}
-                  className="p-2 text-gray-500 hover:text-rose-600 transition"
-                  title="Delete"
-                >
-                  <Trash2 className="w-5 h-5" />
-                </button>
-              )}
+            
+            <div className="relative">
               <button
-                onClick={handleDownload}
-                className="p-2 text-gray-500 hover:text-rose-600 transition"
-                title="Download"
+                onClick={() => setShowShareMenu(!showShareMenu)}
+                className="p-2 bg-white/80 backdrop-blur-sm border border-rose-100 rounded-full text-gray-600 hover:text-rose-600 transition"
+                title="Share"
               >
-                <Download className="w-5 h-5" />
+                <Share2 className="w-5 h-5" />
               </button>
-              <div className="relative">
-                <button
-                  onClick={() => setShowShareMenu(!showShareMenu)}
-                  className="p-2 text-gray-500 hover:text-rose-600 transition"
-                  title="Share"
-                >
-                  <Share2 className="w-5 h-5" />
-                </button>
-                {showShareMenu && (
-                  <div className="absolute right-0 mt-2 w-48 bg-white rounded-xl shadow-lg border border-gray-100 z-10">
+              
+              {showShareMenu && (
+                <div className="absolute right-0 mt-2 w-56 bg-white rounded-2xl shadow-2xl border border-rose-100 overflow-hidden z-20">
+                  <div className="p-2">
                     <a
                       href={shareUrls.whatsapp}
                       target="_blank"
                       rel="noopener noreferrer"
-                      className="block px-4 py-2 text-gray-700 hover:bg-rose-50 hover:text-rose-600 transition"
+                      className="flex items-center space-x-3 px-4 py-3 text-gray-700 hover:bg-rose-50 hover:text-rose-600 rounded-xl transition"
                       onClick={() => setShowShareMenu(false)}
                     >
-                      WhatsApp
+                      <div className="w-8 h-8 bg-green-100 rounded-full flex items-center justify-center">
+                        <span className="text-green-600 font-bold">W</span>
+                      </div>
+                      <span>WhatsApp</span>
                     </a>
                     <a
                       href={shareUrls.facebook}
                       target="_blank"
                       rel="noopener noreferrer"
-                      className="block px-4 py-2 text-gray-700 hover:bg-rose-50 hover:text-rose-600 transition"
+                      className="flex items-center space-x-3 px-4 py-3 text-gray-700 hover:bg-rose-50 hover:text-rose-600 rounded-xl transition"
                       onClick={() => setShowShareMenu(false)}
                     >
-                      Facebook
+                      <div className="w-8 h-8 bg-blue-100 rounded-full flex items-center justify-center">
+                        <span className="text-blue-600 font-bold">f</span>
+                      </div>
+                      <span>Facebook</span>
                     </a>
                     <a
                       href={shareUrls.twitter}
                       target="_blank"
                       rel="noopener noreferrer"
-                      className="block px-4 py-2 text-gray-700 hover:bg-rose-50 hover:text-rose-600 transition"
+                      className="flex items-center space-x-3 px-4 py-3 text-gray-700 hover:bg-rose-50 hover:text-rose-600 rounded-xl transition"
                       onClick={() => setShowShareMenu(false)}
                     >
-                      Twitter
+                      <div className="w-8 h-8 bg-sky-100 rounded-full flex items-center justify-center">
+                        <span className="text-sky-600 font-bold">𝕏</span>
+                      </div>
+                      <span>Twitter</span>
                     </a>
                     <button
                       onClick={() => {
                         copyToClipboard();
                         setShowShareMenu(false);
                       }}
-                      className="block w-full text-left px-4 py-2 text-gray-700 hover:bg-rose-50 hover:text-rose-600 transition"
+                      className="w-full flex items-center space-x-3 px-4 py-3 text-gray-700 hover:bg-rose-50 hover:text-rose-600 rounded-xl transition"
                     >
-                      Copy Link
+                      <div className="w-8 h-8 bg-gray-100 rounded-full flex items-center justify-center">
+                        {copied ? (
+                          <Check className="w-4 h-4 text-green-600" />
+                        ) : (
+                          <Copy className="w-4 h-4 text-gray-600" />
+                        )}
+                      </div>
+                      <span>{copied ? 'Copied!' : 'Copy Link'}</span>
                     </button>
                   </div>
-                )}
-              </div>
+                </div>
+              )}
+            </div>
+            
+            <div className="relative">
+              <button
+                onClick={() => setShowMoreMenu(!showMoreMenu)}
+                className="p-2 bg-white/80 backdrop-blur-sm border border-rose-100 rounded-full text-gray-600 hover:text-rose-600 transition"
+                title="More"
+              >
+                <MoreHorizontal className="w-5 h-5" />
+              </button>
+              
+              {showMoreMenu && (
+                <div className="absolute right-0 mt-2 w-48 bg-white rounded-2xl shadow-2xl border border-rose-100 overflow-hidden z-20">
+                  <div className="p-2">
+                    <button
+                      onClick={() => {
+                        handleDownload();
+                        setShowMoreMenu(false);
+                      }}
+                      className="w-full flex items-center space-x-3 px-4 py-3 text-gray-700 hover:bg-rose-50 hover:text-rose-600 rounded-xl transition"
+                    >
+                      <Download className="w-5 h-5" />
+                      <span>Download</span>
+                    </button>
+                    
+                    {isOwner && (
+                      <button
+                        onClick={() => {
+                          handleDelete();
+                          setShowMoreMenu(false);
+                        }}
+                        className="w-full flex items-center space-x-3 px-4 py-3 text-rose-600 hover:bg-rose-50 rounded-xl transition"
+                      >
+                        <Trash2 className="w-5 h-5" />
+                        <span>Delete</span>
+                      </button>
+                    )}
+                  </div>
+                </div>
+              )}
             </div>
           </div>
+        </div>
 
-          <div className="flex flex-col md:flex-row">
-            {/* Left: Image */}
-            <div className="md:w-3/5 p-6 flex items-center justify-center bg-black/5">
+        {/* Main Content Card */}
+        <div className="bg-white/80 backdrop-blur-sm rounded-3xl shadow-2xl border border-rose-100 overflow-hidden">
+          <div className="flex flex-col lg:flex-row">
+            {/* Left: Image Section */}
+            <div className="lg:w-3/5 bg-gradient-to-br from-rose-900/5 to-pink-900/5 p-6 lg:p-8 flex items-center justify-center min-h-[400px] lg:min-h-[600px]">
               <img
                 src={photo.imageUrl}
                 alt={photo.caption || 'Photo'}
-                className="max-h-[70vh] object-contain rounded-lg"
+                className="max-w-full max-h-[70vh] object-contain rounded-2xl shadow-2xl"
               />
             </div>
 
-            {/* Right: Details */}
-            <div className="md:w-2/5 p-6">
-              {/* User info */}
+            {/* Right: Details Section */}
+            <div className="lg:w-2/5 p-6 lg:p-8">
+              {/* User Info */}
               <Link
                 to={`/profile/${photo.user?.username}`}
-                className="flex items-center space-x-3 mb-6 hover:bg-gray-50 p-2 rounded-lg transition"
+                className="flex items-center space-x-4 p-3 rounded-2xl hover:bg-rose-50 transition group"
               >
-                <div className="h-10 w-10 rounded-full bg-rose-100 flex items-center justify-center text-rose-600 font-semibold text-lg">
-                  {photo.user?.username ? photo.user.username.charAt(0).toUpperCase() : 'U'}
+                <div className="relative">
+                  <div className="h-14 w-14 rounded-full bg-gradient-to-br from-rose-400 to-pink-500 flex items-center justify-center text-white font-bold text-xl overflow-hidden shadow-md">
+                    {photo.user?.profilePic ? (
+                      <img src={photo.user.profilePic} alt={photo.user.username} className="w-full h-full object-cover" />
+                    ) : (
+                      photo.user?.username?.charAt(0).toUpperCase() || 'U'
+                    )}
+                  </div>
+                  <div className="absolute -bottom-1 -right-1 w-4 h-4 bg-green-500 border-2 border-white rounded-full"></div>
                 </div>
-                <div>
-                  <p className="font-semibold text-gray-800">{photo.user?.username || 'Unknown'}</p>
-                  <p className="text-xs text-gray-400">{new Date(photo.createdAt).toLocaleString()}</p>
+                <div className="flex-1">
+                  <p className="font-semibold text-gray-800 group-hover:text-rose-600 transition text-lg">
+                    {photo.user?.username || 'Unknown'}
+                  </p>
+                  <div className="flex items-center space-x-2 text-xs text-gray-400">
+                    <Clock className="w-3 h-3" />
+                    <span>{formatDate(photo.createdAt)}</span>
+                  </div>
                 </div>
               </Link>
 
               {/* Caption */}
               {photo.caption && (
-                <div className="mb-6 p-3 bg-gray-50 rounded-lg">
-                  <p className="text-gray-800">
-                    <span className="font-semibold mr-2">{photo.user?.username}</span>
+                <div className="mt-6 p-5 bg-gradient-to-br from-rose-50 to-pink-50 rounded-2xl border border-rose-200">
+                  <p className="text-gray-800 leading-relaxed">
+                    <span className="font-semibold text-rose-600 mr-2">@{photo.user?.username}</span>
                     {photo.caption}
                   </p>
                 </div>
               )}
 
-              {/* Like button */}
-              <div className="flex items-center space-x-2 mb-6">
+              {/* Stats */}
+              <div className="flex items-center justify-between mt-6 p-4 bg-white rounded-2xl border border-rose-100">
                 <button
                   onClick={handleLike}
-                  className={`flex items-center space-x-1 px-4 py-2 rounded-full transition ${
-                    liked ? 'bg-rose-100 text-rose-600' : 'bg-gray-100 hover:bg-gray-200 text-gray-700'
+                  className={`flex items-center space-x-2 px-4 py-2 rounded-xl transition ${
+                    liked 
+                      ? 'bg-rose-500 text-white' 
+                      : 'bg-rose-50 text-rose-600 hover:bg-rose-100'
                   }`}
                 >
-                  <Heart className={`w-5 h-5 ${liked ? 'fill-rose-500 text-rose-500' : ''}`} />
-                  <span className="font-medium">{likes} {likes === 1 ? 'like' : 'likes'}</span>
+                  <Heart className={`w-5 h-5 ${liked ? 'fill-white' : ''}`} />
+                  <span className="font-medium">{likes}</span>
                 </button>
+                
+                <div className="flex items-center space-x-2 text-gray-500">
+                  <MessageCircle className="w-5 h-5" />
+                  <span className="font-medium">{comments.length}</span>
+                </div>
+                
+                <div className="flex items-center space-x-2 text-gray-500">
+                  <Calendar className="w-5 h-5" />
+                  <span className="text-sm">{new Date(photo.createdAt).toLocaleDateString()}</span>
+                </div>
               </div>
 
-              {/* Comments section */}
-              <div className="border-t border-gray-100 pt-4">
-                <h3 className="font-semibold text-gray-800 mb-3">Comments ({comments.length})</h3>
-                <div className="max-h-60 overflow-y-auto space-y-3 mb-4">
-                  {comments.map(comment => (
-                    <div key={comment._id} className="flex items-start space-x-2 text-sm">
-                      <Link to={`/profile/${comment.user?.username}`} className="font-semibold hover:underline">
-                        {comment.user?.username}:
-                      </Link>
-                      <p className="text-gray-700">{comment.text}</p>
+              {/* Comments Section */}
+              <div className="mt-6">
+                <h3 className="font-semibold text-gray-800 mb-4 flex items-center space-x-2">
+                  <MessageCircle className="w-5 h-5 text-rose-500" />
+                  <span>Comments ({comments.length})</span>
+                </h3>
+                
+                <div className="space-y-4 max-h-80 overflow-y-auto pr-2 custom-scrollbar">
+                  {comments.length > 0 ? (
+                    comments.map(comment => (
+                      <div key={comment._id} className="flex items-start space-x-3 group">
+                        <Link to={`/profile/${comment.user?.username}`}>
+                          <div className="h-8 w-8 rounded-full bg-gradient-to-br from-rose-400 to-pink-500 flex-shrink-0 flex items-center justify-center text-white text-xs font-bold">
+                            {comment.user?.username?.charAt(0).toUpperCase() || 'U'}
+                          </div>
+                        </Link>
+                        <div className="flex-1 bg-gray-50 rounded-2xl p-3 group-hover:bg-rose-50 transition">
+                          <Link to={`/profile/${comment.user?.username}`} className="font-semibold text-sm text-gray-800 hover:text-rose-600">
+                            @{comment.user?.username}
+                          </Link>
+                          <p className="text-sm text-gray-700 mt-1">{comment.text}</p>
+                          <p className="text-xs text-gray-400 mt-1">
+                            {new Date(comment.createdAt).toLocaleDateString()}
+                          </p>
+                        </div>
+                      </div>
+                    ))
+                  ) : (
+                    <div className="text-center py-8">
+                      <MessageCircle className="w-12 h-12 text-rose-300 mx-auto mb-3" />
+                      <p className="text-gray-400">No comments yet</p>
+                      <p className="text-sm text-gray-300">Be the first to comment!</p>
                     </div>
-                  ))}
-                  {comments.length === 0 && (
-                    <p className="text-gray-400 text-sm">No comments yet.</p>
                   )}
                 </div>
 
-                {/* Add comment */}
-                <form onSubmit={handleCommentSubmit} className="flex items-center space-x-2">
-                  <input
-                    type="text"
-                    value={newComment}
-                    onChange={(e) => setNewComment(e.target.value)}
-                    placeholder="Add a comment..."
-                    className="flex-1 px-3 py-2 border border-gray-200 rounded-full text-sm focus:ring-1 focus:ring-rose-200 focus:border-rose-400 transition"
-                    disabled={submitting}
-                  />
-                  <button
-                    type="submit"
-                    disabled={submitting || !newComment.trim()}
-                    className="p-2 text-rose-500 hover:text-rose-600 disabled:text-gray-300 transition"
-                  >
-                    <Send className="w-4 h-4" />
-                  </button>
+                {/* Add Comment */}
+                <form onSubmit={handleCommentSubmit} className="mt-6">
+                  <div className="flex items-center space-x-2 bg-white border-2 border-rose-100 rounded-full p-1 pl-4 focus-within:border-rose-400 focus-within:ring-2 focus-within:ring-rose-200 transition">
+                    <input
+                      type="text"
+                      value={newComment}
+                      onChange={(e) => setNewComment(e.target.value)}
+                      placeholder="Add a comment..."
+                      className="flex-1 py-2 bg-transparent focus:outline-none text-sm"
+                      disabled={submitting}
+                    />
+                    <button
+                      type="submit"
+                      disabled={submitting || !newComment.trim()}
+                      className="p-2 bg-gradient-to-r from-rose-500 to-pink-500 text-white rounded-full hover:from-rose-600 hover:to-pink-600 transition disabled:opacity-50 disabled:cursor-not-allowed shadow-md"
+                    >
+                      {submitting ? (
+                        <div className="w-5 h-5 border-2 border-white border-t-transparent rounded-full animate-spin" />
+                      ) : (
+                        <Send className="w-5 h-5" />
+                      )}
+                    </button>
+                  </div>
                 </form>
               </div>
             </div>
           </div>
         </div>
+
+        {/* Footer */}
+        <div className="mt-4 text-center">
+          <p className="text-xs text-gray-400 flex items-center justify-center space-x-1">
+            <Heart className="w-3 h-3 text-rose-400" />
+            <span>Secured with HeartLock</span>
+          </p>
+        </div>
       </div>
+
+      <style>{`
+        .custom-scrollbar::-webkit-scrollbar {
+          width: 6px;
+        }
+        .custom-scrollbar::-webkit-scrollbar-track {
+          background: #f1f1f1;
+          border-radius: 10px;
+        }
+        .custom-scrollbar::-webkit-scrollbar-thumb {
+          background: #fda4af;
+          border-radius: 10px;
+        }
+        .custom-scrollbar::-webkit-scrollbar-thumb:hover {
+          background: #f43f5e;
+        }
+      `}</style>
     </div>
   );
 };

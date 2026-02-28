@@ -2,7 +2,12 @@ import React, { useState, useEffect, useContext } from 'react';
 import { useParams, useNavigate, Link } from 'react-router-dom';
 import { AuthContext } from '../../context/AuthContext';
 import api from '../../utils/api';
-import { X, Share2, MessageCircle, Heart, Star, Award, Crown, Camera, MessageSquare } from 'lucide-react';
+import { 
+  X, Share2, MessageCircle, Heart, Star, Award, Crown, 
+  Camera, MessageSquare, Calendar, MapPin, Link as LinkIcon,
+  MoreHorizontal, Settings, Grid, Bookmark, UserPlus,
+  Check, Copy, ChevronRight, Sparkles, Lock
+} from 'lucide-react';
 
 const Profile = () => {
   const { username } = useParams();
@@ -10,11 +15,13 @@ const Profile = () => {
   const { user: currentUser } = useContext(AuthContext);
   const [profileUser, setProfileUser] = useState(null);
   const [photos, setPhotos] = useState([]);
+  const [savedPhotos, setSavedPhotos] = useState([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState('');
   const [followLoading, setFollowLoading] = useState(false);
   const [showShareTooltip, setShowShareTooltip] = useState(false);
   const [avatarModalOpen, setAvatarModalOpen] = useState(false);
+  const [activeTab, setActiveTab] = useState('posts');
 
   // Modal state for followers/following
   const [modalOpen, setModalOpen] = useState(false);
@@ -26,6 +33,7 @@ const Profile = () => {
 
   useEffect(() => {
     fetchProfileData();
+    window.scrollTo(0, 0);
   }, [username]);
 
   const fetchProfileData = async () => {
@@ -36,6 +44,16 @@ const Profile = () => {
       ]);
       setProfileUser(userRes.data);
       setPhotos(photosRes.data);
+      
+      // Fetch saved photos if it's own profile
+      if (currentUser?.username === username) {
+        try {
+          const savedRes = await api.get('/users/saved/photos');
+          setSavedPhotos(savedRes.data);
+        } catch (err) {
+          console.error('Error fetching saved photos:', err);
+        }
+      }
     } catch (err) {
       console.error('Error fetching profile:', err);
       setError('User not found');
@@ -83,7 +101,8 @@ const Profile = () => {
     if (navigator.share) {
       try {
         await navigator.share({
-          title: `${username}'s Profile`,
+          title: `${username}'s Profile - HeartLock`,
+          text: profileUser?.bio || `Check out ${username}'s profile on HeartLock`,
           url: profileUrl,
         });
       } catch (err) {
@@ -118,7 +137,7 @@ const Profile = () => {
 
   // Determine badge based on account age
   const getBadgeInfo = () => {
-    if (!profileUser || !profileUser.createdAt) return { level: '', ringColor: '', icon: null };
+    if (!profileUser || !profileUser.createdAt) return { level: '', ringColor: '', icon: null, bgColor: '' };
     const createdAt = new Date(profileUser.createdAt);
     const now = new Date();
     const ageDays = Math.floor((now - createdAt) / (1000 * 60 * 60 * 24));
@@ -127,31 +146,40 @@ const Profile = () => {
       return { 
         level: 'Newbie', 
         ringColor: 'ring-rose-200',
+        bgColor: 'bg-rose-50 text-rose-600',
         icon: Heart,
         iconColor: 'text-rose-300',
       };
     } else if (ageDays < 90) {
       return { 
         level: 'Bronze', 
-        ringColor: 'ring-rose-400',
+        ringColor: 'ring-amber-400',
+        bgColor: 'bg-amber-50 text-amber-600',
         icon: Star,
-        iconColor: 'text-rose-500',
+        iconColor: 'text-amber-500',
       };
     } else if (ageDays < 180) {
       return { 
         level: 'Silver', 
-        ringColor: 'ring-rose-600',
+        ringColor: 'ring-gray-400',
+        bgColor: 'bg-gray-50 text-gray-600',
         icon: Award,
-        iconColor: 'text-rose-600',
+        iconColor: 'text-gray-500',
       };
     } else {
       return { 
         level: 'Gold', 
-        ringColor: 'ring-amber-400',
+        ringColor: 'ring-yellow-400',
+        bgColor: 'bg-yellow-50 text-yellow-600',
         icon: Crown,
-        iconColor: 'text-amber-500',
+        iconColor: 'text-yellow-500',
       };
     }
+  };
+
+  const formatJoinDate = (dateString) => {
+    const date = new Date(dateString);
+    return date.toLocaleDateString('en-US', { month: 'long', year: 'numeric' });
   };
 
   const badge = getBadgeInfo();
@@ -159,31 +187,46 @@ const Profile = () => {
 
   if (loading) {
     return (
-      <div className="min-h-screen bg-gray-50 flex items-center justify-center">
-        <div className="inline-block h-8 w-8 animate-spin rounded-full border-4 border-solid border-rose-500 border-r-transparent"></div>
+      <div className="min-h-screen bg-gradient-to-br from-rose-50 via-white to-pink-50 flex items-center justify-center">
+        <div className="relative">
+          <div className="w-20 h-20 border-4 border-rose-200 border-t-rose-500 rounded-full animate-spin"></div>
+          <Heart className="absolute top-1/2 left-1/2 transform -translate-x-1/2 -translate-y-1/2 w-8 h-8 text-rose-500 animate-pulse" />
+        </div>
       </div>
     );
   }
 
   if (error || !profileUser) {
     return (
-      <div className="min-h-screen bg-gray-50 flex items-center justify-center">
-        <p className="text-gray-500">{error || 'User not found'}</p>
+      <div className="min-h-screen bg-gradient-to-br from-rose-50 via-white to-pink-50 flex items-center justify-center p-4">
+        <div className="max-w-md w-full bg-white/80 backdrop-blur-sm rounded-3xl shadow-2xl p-8 text-center border border-rose-100">
+          <div className="w-24 h-24 bg-rose-100 rounded-full flex items-center justify-center mx-auto mb-6">
+            <Lock className="w-12 h-12 text-rose-400" />
+          </div>
+          <h2 className="text-2xl font-bold text-gray-800 mb-2">Profile Not Found</h2>
+          <p className="text-gray-600 mb-8">The user "{username}" doesn't exist or may have been removed.</p>
+          <button
+            onClick={() => navigate('/')}
+            className="px-6 py-3 bg-rose-500 hover:bg-rose-600 text-white rounded-xl font-medium transition shadow-lg shadow-rose-500/25"
+          >
+            Go Back Home
+          </button>
+        </div>
       </div>
     );
   }
 
   return (
-    <div className="min-h-screen bg-gray-50 pb-20 md:pb-8 pt-4 md:pt-8">
+    <div className="min-h-screen bg-gradient-to-br from-rose-50 via-white to-pink-50 pb-20 pt-8">
       <div className="max-w-6xl mx-auto px-4">
-        {/* Profile Header (unchanged) */}
-        <div className="bg-white rounded-xl shadow-sm border border-gray-100 p-4 md:p-6 mb-6 md:mb-8">
-          <div className="flex flex-col md:flex-row items-start md:items-center gap-4 md:gap-6">
+        {/* Profile Header */}
+        <div className="bg-white/80 backdrop-blur-sm rounded-3xl shadow-2xl border border-rose-100 p-6 md:p-8 mb-6">
+          <div className="flex flex-col md:flex-row items-start md:items-center gap-6">
             {/* Avatar with click-to-enlarge */}
             <div className="relative group">
               <div
-                className={`h-16 w-16 md:h-20 md:w-20 rounded-full ring-4 ${badge.ringColor} ring-offset-2 overflow-hidden shadow-xl transition-all duration-300 group-hover:ring-opacity-80 cursor-${profileUser.profilePic ? 'pointer' : 'default'}`}
-                title={`${badge.level} member – joined ${new Date(profileUser.createdAt).toLocaleDateString()}`}
+                className={`h-24 w-24 md:h-32 md:w-32 rounded-full ring-4 ${badge.ringColor} ring-offset-4 overflow-hidden shadow-2xl transition-all duration-300 group-hover:ring-opacity-80 cursor-${profileUser.profilePic ? 'pointer' : 'default'} transform hover:scale-105`}
+                title={`${badge.level} member – joined ${formatJoinDate(profileUser.createdAt)}`}
                 onClick={() => profileUser.profilePic && setAvatarModalOpen(true)}
               >
                 {profileUser.profilePic ? (
@@ -193,162 +236,388 @@ const Profile = () => {
                     className="w-full h-full object-cover"
                   />
                 ) : (
-                  <div className="w-full h-full bg-gradient-to-br from-rose-400 to-rose-600 flex items-center justify-center text-white text-2xl md:text-3xl font-bold">
+                  <div className="w-full h-full bg-gradient-to-br from-rose-400 to-pink-600 flex items-center justify-center text-white text-3xl md:text-4xl font-bold">
                     {profileUser.username?.charAt(0).toUpperCase()}
                   </div>
                 )}
               </div>
               {BadgeIcon && (
-                <div className={`absolute -bottom-1 -right-1 w-6 h-6 rounded-full bg-white shadow-lg flex items-center justify-center ${badge.iconColor}`}>
-                  <BadgeIcon className="w-4 h-4" />
+                <div className={`absolute -bottom-1 -right-1 w-8 h-8 rounded-full bg-white shadow-xl flex items-center justify-center ${badge.iconColor}`}>
+                  <BadgeIcon className="w-5 h-5" />
                 </div>
               )}
             </div>
 
             {/* User Info */}
-            <div className="flex-1 w-full md:w-auto">
-              <div className="flex items-center gap-2 mb-1">
-                <h1 className="text-xl md:text-2xl font-bold text-gray-800">{profileUser.username}</h1>
-                <span className="text-xs px-2 py-1 rounded-full bg-rose-50 text-rose-600 font-medium">
+            <div className="flex-1">
+              <div className="flex flex-wrap items-center gap-3 mb-3">
+                <h1 className="text-2xl md:text-3xl font-bold text-gray-800">{profileUser.username}</h1>
+                <span className={`text-xs px-3 py-1.5 rounded-full font-medium ${badge.bgColor}`}>
                   {badge.level}
                 </span>
+                {profileUser.isVerified && (
+                  <span className="bg-blue-500 text-white p-1 rounded-full">
+                    <Check className="w-3 h-3" />
+                  </span>
+                )}
               </div>
+
+              {/* Bio */}
               {profileUser.bio && (
-                <p className="text-gray-600 text-sm md:text-base mb-2 md:mb-3">{profileUser.bio}</p>
+                <p className="text-gray-600 text-sm md:text-base mb-4 max-w-2xl leading-relaxed">
+                  {profileUser.bio}
+                </p>
               )}
 
-              <div className="flex space-x-4 md:space-x-6 text-sm">
-                <div>
-                  <span className="font-semibold text-gray-800">{photos.length}</span>{' '}
-                  <span className="text-gray-500">posts</span>
-                </div>
-                <button onClick={() => openModal('followers')} className="hover:text-rose-600 transition">
-                  <span className="font-semibold text-gray-800">{profileUser.followers?.length || 0}</span>{' '}
-                  <span className="text-gray-500">followers</span>
-                </button>
-                <button onClick={() => openModal('following')} className="hover:text-rose-600 transition">
-                  <span className="font-semibold text-gray-800">{profileUser.following?.length || 0}</span>{' '}
-                  <span className="text-gray-500">following</span>
-                </button>
+              {/* Additional Info */}
+              <div className="flex flex-wrap gap-4 mb-4 text-sm text-gray-500">
+                {profileUser.location && (
+                  <span className="flex items-center space-x-1">
+                    <MapPin className="w-4 h-4" />
+                    <span>{profileUser.location}</span>
+                  </span>
+                )}
+                {profileUser.website && (
+                  <span className="flex items-center space-x-1">
+                    <LinkIcon className="w-4 h-4" />
+                    <a href={profileUser.website} target="_blank" rel="noopener noreferrer" className="text-rose-500 hover:underline">
+                      {profileUser.website.replace(/^https?:\/\//, '')}
+                    </a>
+                  </span>
+                )}
+                <span className="flex items-center space-x-1">
+                  <Calendar className="w-4 h-4" />
+                  <span>Joined {formatJoinDate(profileUser.createdAt)}</span>
+                </span>
               </div>
-            </div>
 
-            {/* Action Buttons */}
-            {isOwnProfile ? (
-              <div className="flex flex-col sm:flex-row gap-2 w-full md:w-auto mt-2 md:mt-0">
-                <button
-                  onClick={() => navigate(`/profile/${username}/edit`)}
-                  className="w-full sm:w-auto bg-rose-500 hover:bg-rose-600 text-white px-6 py-2.5 md:py-2 rounded-lg text-sm font-medium transition"
-                >
-                  Edit Profile
-                </button>
-                <div className="relative w-full sm:w-auto">
-                  <button
-                    onClick={handleShareProfile}
-                    className="w-full sm:w-auto bg-gray-200 hover:bg-gray-300 text-gray-800 px-6 py-2.5 md:py-2 rounded-lg text-sm font-medium transition flex items-center justify-center gap-2"
-                  >
-                    <Share2 className="w-4 h-4" />
-                    Share Profile
-                  </button>
-                  {showShareTooltip && (
-                    <span className="absolute -top-8 left-1/2 transform -translate-x-1/2 bg-gray-800 text-white text-xs px-2 py-1 rounded whitespace-nowrap animate-fade-in">
-                      Link copied!
-                    </span>
-                  )}
+              {/* Stats */}
+              <div className="flex space-x-6 md:space-x-8 mb-6">
+                <div className="text-center">
+                  <span className="block text-xl font-bold text-gray-800">{photos.length}</span>
+                  <span className="text-xs text-gray-500">Posts</span>
                 </div>
-              </div>
-            ) : currentUser ? (
-              <div className="flex flex-col sm:flex-row gap-2 w-full md:w-auto mt-2 md:mt-0">
-                <button
-                  onClick={isFollowing ? handleUnfollow : handleFollow}
-                  disabled={followLoading}
-                  className={`w-full sm:w-auto px-6 py-2.5 md:py-2 rounded-lg text-sm font-medium transition ${
-                    isFollowing
-                      ? 'bg-gray-200 text-gray-800 hover:bg-gray-300'
-                      : 'bg-rose-500 hover:bg-rose-600 text-white'
-                  }`}
-                >
-                  {followLoading ? '...' : isFollowing ? 'Unfollow' : 'Follow'}
+                <button onClick={() => openModal('followers')} className="text-center hover:text-rose-600 transition group">
+                  <span className="block text-xl font-bold text-gray-800 group-hover:text-rose-600">
+                    {profileUser.followers?.length || 0}
+                  </span>
+                  <span className="text-xs text-gray-500 group-hover:text-rose-600">Followers</span>
                 </button>
-                <Link
-                  to={`/chat/${profileUser._id}`}
-                  className="w-full sm:w-auto bg-rose-100 hover:bg-rose-200 text-rose-600 px-6 py-2.5 md:py-2 rounded-lg text-sm font-medium transition flex items-center justify-center gap-2"
-                >
-                  <MessageCircle className="w-4 h-4" />
-                  Message
-                </Link>
+                <button onClick={() => openModal('following')} className="text-center hover:text-rose-600 transition group">
+                  <span className="block text-xl font-bold text-gray-800 group-hover:text-rose-600">
+                    {profileUser.following?.length || 0}
+                  </span>
+                  <span className="text-xs text-gray-500 group-hover:text-rose-600">Following</span>
+                </button>
               </div>
-            ) : null}
+
+              {/* Action Buttons */}
+              <div className="flex flex-wrap gap-3">
+                {isOwnProfile ? (
+                  <>
+                    <button
+                      onClick={() => navigate(`/profile/${username}/edit`)}
+                      className="bg-gradient-to-r from-rose-500 to-pink-500 hover:from-rose-600 hover:to-pink-600 text-white px-6 py-3 rounded-xl text-sm font-medium transition shadow-lg shadow-rose-500/25 flex items-center space-x-2"
+                    >
+                      <Settings className="w-4 h-4" />
+                      <span>Edit Profile</span>
+                    </button>
+                    <button
+                      onClick={handleShareProfile}
+                      className="bg-gray-100 hover:bg-gray-200 text-gray-700 px-6 py-3 rounded-xl text-sm font-medium transition flex items-center space-x-2"
+                    >
+                      <Share2 className="w-4 h-4" />
+                      <span>Share</span>
+                    </button>
+                  </>
+                ) : currentUser ? (
+                  <>
+                    <button
+                      onClick={isFollowing ? handleUnfollow : handleFollow}
+                      disabled={followLoading}
+                      className={`px-6 py-3 rounded-xl text-sm font-medium transition flex items-center space-x-2 ${
+                        isFollowing
+                          ? 'bg-gray-200 hover:bg-gray-300 text-gray-800'
+                          : 'bg-gradient-to-r from-rose-500 to-pink-500 hover:from-rose-600 hover:to-pink-600 text-white shadow-lg shadow-rose-500/25'
+                      }`}
+                    >
+                      {followLoading ? (
+                        <div className="w-4 h-4 border-2 border-current border-t-transparent rounded-full animate-spin"></div>
+                      ) : isFollowing ? (
+                        <>
+                          <UserPlus className="w-4 h-4" />
+                          <span>Unfollow</span>
+                        </>
+                      ) : (
+                        <>
+                          <UserPlus className="w-4 h-4" />
+                          <span>Follow</span>
+                        </>
+                      )}
+                    </button>
+                    <Link
+                      to={`/chat/${profileUser._id}`}
+                      className="bg-rose-100 hover:bg-rose-200 text-rose-600 px-6 py-3 rounded-xl text-sm font-medium transition flex items-center space-x-2"
+                    >
+                      <MessageCircle className="w-4 h-4" />
+                      <span>Message</span>
+                    </Link>
+                    <button
+                      onClick={handleShareProfile}
+                      className="bg-gray-100 hover:bg-gray-200 text-gray-700 p-3 rounded-xl transition"
+                      title="Share Profile"
+                    >
+                      <Share2 className="w-5 h-5" />
+                    </button>
+                  </>
+                ) : (
+                  <Link
+                    to="/login"
+                    className="bg-gradient-to-r from-rose-500 to-pink-500 hover:from-rose-600 hover:to-pink-600 text-white px-6 py-3 rounded-xl text-sm font-medium transition shadow-lg shadow-rose-500/25"
+                  >
+                    Follow to Connect
+                  </Link>
+                )}
+              </div>
+
+              {/* Share tooltip */}
+              {showShareTooltip && (
+                <div className="absolute top-full right-0 mt-2 bg-gray-800 text-white text-sm px-4 py-2 rounded-lg shadow-lg flex items-center space-x-2 animate-fadeIn">
+                  <Check className="w-4 h-4 text-emerald-400" />
+                  <span>Profile link copied!</span>
+                </div>
+              )}
+            </div>
           </div>
         </div>
 
-        {/* Enhanced Photo Grid */}
-        <div className="mb-4 flex items-center justify-between">
-          <h2 className="text-lg md:text-xl font-semibold text-gray-800">Photos</h2>
-          {photos.length > 0 && (
-            <span className="text-sm text-gray-400">{photos.length} {photos.length === 1 ? 'photo' : 'photos'}</span>
+        {/* Tabs - Fixed with both Posts and Saved tabs */}
+        <div className="flex border-b border-rose-100 mb-6">
+          <button
+            onClick={() => setActiveTab('posts')}
+            className={`flex items-center space-x-2 px-6 py-3 text-sm font-medium transition border-b-2 ${
+              activeTab === 'posts'
+                ? 'border-rose-500 text-rose-600'
+                : 'border-transparent text-gray-500 hover:text-gray-700'
+            }`}
+          >
+            <Grid className="w-4 h-4" />
+            <span>Posts</span>
+          </button>
+          
+          {/* Only show Saved tab for own profile */}
+          {isOwnProfile && (
+            <button
+              onClick={() => setActiveTab('saved')}
+              className={`flex items-center space-x-2 px-6 py-3 text-sm font-medium transition border-b-2 ${
+                activeTab === 'saved'
+                  ? 'border-rose-500 text-rose-600'
+                  : 'border-transparent text-gray-500 hover:text-gray-700'
+              }`}
+            >
+              <Bookmark className="w-4 h-4" />
+              <span>Saved</span>
+            </button>
           )}
         </div>
 
-        {photos.length === 0 ? (
-          <div className="text-center py-16 bg-white rounded-2xl shadow-sm border border-gray-100">
-            <Camera className="w-12 h-12 text-gray-300 mx-auto mb-3" />
-            <p className="text-gray-500 text-lg">No photos yet</p>
-            <p className="text-gray-400 text-sm mt-1">This user hasn't shared any moments</p>
-          </div>
-        ) : (
-          <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-4">
-            {photos.map(photo => (
-              <div
-                key={photo._id}
-                className="relative aspect-square group cursor-pointer overflow-hidden rounded-xl bg-white shadow-sm hover:shadow-xl transition-all duration-300"
-                onClick={() => navigate(`/photo/${photo._id}`)}
-              >
-                <img
-                  src={photo.imageUrl}
-                  alt={photo.caption || 'User photo'}
-                  className="w-full h-full object-cover transition-transform duration-500 group-hover:scale-110"
-                />
-                {/* Gradient overlay */}
-                <div className="absolute inset-0 bg-gradient-to-t from-black/60 via-transparent to-transparent opacity-0 group-hover:opacity-100 transition-opacity duration-300" />
-                
-                {/* Stats overlay */}
-                <div className="absolute bottom-0 left-0 right-0 p-3 text-white transform translate-y-2 group-hover:translate-y-0 transition-transform duration-300">
-                  <div className="flex items-center space-x-3">
-                    <span className="flex items-center space-x-1 text-sm">
-                      <Heart className="w-4 h-4 fill-white" />
-                      <span>{photo.likes?.length || 0}</span>
-                    </span>
-                    <span className="flex items-center space-x-1 text-sm">
-                      <MessageSquare className="w-4 h-4" />
-                      <span>{photo.comments?.length || 0}</span>
-                    </span>
-                  </div>
+        {/* Posts Tab */}
+        {activeTab === 'posts' && (
+          <>
+            <div className="mb-4 flex items-center justify-between">
+              <h2 className="text-lg font-semibold text-gray-800 flex items-center space-x-2">
+                <Camera className="w-5 h-5 text-rose-500" />
+                <span>Moments</span>
+              </h2>
+              {photos.length > 0 && (
+                <span className="text-sm text-gray-400 bg-white/60 px-3 py-1 rounded-full">
+                  {photos.length} {photos.length === 1 ? 'photo' : 'photos'}
+                </span>
+              )}
+            </div>
+
+            {photos.length === 0 ? (
+              <div className="text-center py-16 bg-white/60 backdrop-blur-sm rounded-3xl shadow-lg border border-rose-100">
+                <div className="relative w-24 h-24 mx-auto mb-4">
+                  <div className="absolute inset-0 bg-rose-100 rounded-full animate-pulse"></div>
+                  <Camera className="relative w-12 h-12 text-rose-400 top-1/2 left-1/2 transform -translate-x-1/2 -translate-y-1/2" />
                 </div>
+                <p className="text-gray-700 text-lg mb-2">No moments yet</p>
+                <p className="text-gray-400">
+                  {isOwnProfile 
+                    ? "Share your first photo to start your journey!" 
+                    : "This user hasn't shared any moments yet"}
+                </p>
+                {isOwnProfile && (
+                  <button
+                    onClick={() => navigate('/upload')}
+                    className="mt-6 bg-gradient-to-r from-rose-500 to-pink-500 hover:from-rose-600 hover:to-pink-600 text-white px-6 py-3 rounded-xl font-medium transition shadow-lg shadow-rose-500/25"
+                  >
+                    Upload First Photo
+                  </button>
+                )}
               </div>
-            ))}
-          </div>
+            ) : (
+              <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-4 md:gap-6">
+                {photos.map(photo => (
+                  <div
+                    key={photo._id}
+                    className="relative aspect-square group cursor-pointer overflow-hidden rounded-2xl bg-white shadow-lg hover:shadow-2xl transition-all duration-300 transform hover:-translate-y-1"
+                    onClick={() => navigate(`/photo/${photo._id}`)}
+                  >
+                    <img
+                      src={photo.imageUrl}
+                      alt={photo.caption || 'User photo'}
+                      className="w-full h-full object-cover transition-transform duration-700 group-hover:scale-110"
+                    />
+                    
+                    {/* Gradient overlay */}
+                    <div className="absolute inset-0 bg-gradient-to-t from-black/70 via-black/20 to-transparent opacity-0 group-hover:opacity-100 transition-opacity duration-300" />
+                    
+                    {/* Caption preview */}
+                    {photo.caption && (
+                      <div className="absolute top-3 left-3 right-3">
+                        <p className="text-white text-xs bg-black/50 backdrop-blur-sm px-2 py-1 rounded-lg truncate opacity-0 group-hover:opacity-100 transition-opacity duration-300">
+                          {photo.caption}
+                        </p>
+                      </div>
+                    )}
+                    
+                    {/* Stats overlay */}
+                    <div className="absolute bottom-3 left-3 right-3 flex items-center justify-between text-white transform translate-y-2 group-hover:translate-y-0 transition-transform duration-300">
+                      <div className="flex items-center space-x-3">
+                        <span className="flex items-center space-x-1 text-sm bg-black/30 backdrop-blur-sm px-2 py-1 rounded-lg">
+                          <Heart className="w-3.5 h-3.5" fill="white" />
+                          <span>{photo.likes?.length || 0}</span>
+                        </span>
+                        <span className="flex items-center space-x-1 text-sm bg-black/30 backdrop-blur-sm px-2 py-1 rounded-lg">
+                          <MessageSquare className="w-3.5 h-3.5" />
+                          <span>{photo.comments?.length || 0}</span>
+                        </span>
+                      </div>
+                      <ChevronRight className="w-4 h-4 bg-black/30 backdrop-blur-sm rounded-full p-1" />
+                    </div>
+                  </div>
+                ))}
+              </div>
+            )}
+          </>
         )}
 
-        {/* Followers/Following Modal (unchanged) */}
+        {/* Saved Tab - Now properly implemented */}
+        {activeTab === 'saved' && isOwnProfile && (
+          <>
+            <div className="mb-4 flex items-center justify-between">
+              <h2 className="text-lg font-semibold text-gray-800 flex items-center space-x-2">
+                <Bookmark className="w-5 h-5 text-rose-500" />
+                <span>Saved Moments</span>
+              </h2>
+              {savedPhotos.length > 0 && (
+                <span className="text-sm text-gray-400 bg-white/60 px-3 py-1 rounded-full">
+                  {savedPhotos.length} {savedPhotos.length === 1 ? 'saved' : 'saved'}
+                </span>
+              )}
+            </div>
+
+            {savedPhotos.length === 0 ? (
+              <div className="text-center py-16 bg-white/60 backdrop-blur-sm rounded-3xl shadow-lg border border-rose-100">
+                <div className="relative w-24 h-24 mx-auto mb-4">
+                  <div className="absolute inset-0 bg-rose-100 rounded-full animate-pulse"></div>
+                  <Bookmark className="relative w-12 h-12 text-rose-400 top-1/2 left-1/2 transform -translate-x-1/2 -translate-y-1/2" />
+                </div>
+                <p className="text-gray-700 text-lg mb-2">No saved moments yet</p>
+                <p className="text-gray-400">
+                  When you save photos, they'll appear here
+                </p>
+              </div>
+            ) : (
+              <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-4 md:gap-6">
+                {savedPhotos.map(photo => (
+                  <div
+                    key={photo._id}
+                    className="relative aspect-square group cursor-pointer overflow-hidden rounded-2xl bg-white shadow-lg hover:shadow-2xl transition-all duration-300 transform hover:-translate-y-1"
+                    onClick={() => navigate(`/photo/${photo._id}`)}
+                  >
+                    <img
+                      src={photo.imageUrl}
+                      alt={photo.caption || 'Saved photo'}
+                      className="w-full h-full object-cover transition-transform duration-700 group-hover:scale-110"
+                    />
+                    
+                    {/* Gradient overlay */}
+                    <div className="absolute inset-0 bg-gradient-to-t from-black/70 via-black/20 to-transparent opacity-0 group-hover:opacity-100 transition-opacity duration-300" />
+                    
+                    {/* Saved badge */}
+                    <div className="absolute top-3 right-3">
+                      <div className="bg-rose-500 text-white p-1.5 rounded-full shadow-lg">
+                        <Bookmark className="w-3 h-3 fill-white" />
+                      </div>
+                    </div>
+                    
+                    {/* Caption preview */}
+                    {photo.caption && (
+                      <div className="absolute top-3 left-3 right-10">
+                        <p className="text-white text-xs bg-black/50 backdrop-blur-sm px-2 py-1 rounded-lg truncate opacity-0 group-hover:opacity-100 transition-opacity duration-300">
+                          {photo.caption}
+                        </p>
+                      </div>
+                    )}
+                    
+                    {/* Stats overlay */}
+                    <div className="absolute bottom-3 left-3 right-3 flex items-center justify-between text-white transform translate-y-2 group-hover:translate-y-0 transition-transform duration-300">
+                      <div className="flex items-center space-x-3">
+                        <span className="flex items-center space-x-1 text-sm bg-black/30 backdrop-blur-sm px-2 py-1 rounded-lg">
+                          <Heart className="w-3.5 h-3.5" fill="white" />
+                          <span>{photo.likes?.length || 0}</span>
+                        </span>
+                        <span className="flex items-center space-x-1 text-sm bg-black/30 backdrop-blur-sm px-2 py-1 rounded-lg">
+                          <MessageSquare className="w-3.5 h-3.5" />
+                          <span>{photo.comments?.length || 0}</span>
+                        </span>
+                      </div>
+                      <ChevronRight className="w-4 h-4 bg-black/30 backdrop-blur-sm rounded-full p-1" />
+                    </div>
+                  </div>
+                ))}
+              </div>
+            )}
+          </>
+        )}
+
+        {/* Followers/Following Modal */}
         {modalOpen && (
-          <div className="fixed inset-0 bg-black bg-opacity-50 z-50 flex items-center justify-center p-4">
-            <div className="bg-white rounded-2xl w-full max-w-md max-h-[70vh] overflow-hidden">
-              <div className="p-4 border-b border-gray-100 flex items-center justify-between">
-                <h3 className="text-lg font-semibold text-gray-800">
+          <div 
+            className="fixed inset-0 bg-black/60 backdrop-blur-sm z-50 flex items-center justify-center p-4"
+            onClick={closeModal}
+          >
+            <div 
+              className="bg-white rounded-3xl w-full max-w-md max-h-[70vh] overflow-hidden shadow-2xl"
+              onClick={(e) => e.stopPropagation()}
+            >
+              <div className="p-6 border-b border-rose-100 flex items-center justify-between">
+                <h3 className="text-xl font-bold text-gray-800">
                   {modalType === 'followers' ? 'Followers' : 'Following'}
                 </h3>
-                <button onClick={closeModal} className="text-gray-500 hover:text-gray-700">
-                  <X className="w-5 h-5" />
+                <button 
+                  onClick={closeModal} 
+                  className="p-2 hover:bg-rose-50 rounded-full transition"
+                >
+                  <X className="w-5 h-5 text-gray-500" />
                 </button>
               </div>
-              <div className="p-4 overflow-y-auto max-h-[60vh]">
+              <div className="p-6 overflow-y-auto max-h-[60vh]">
                 {modalLoading ? (
                   <div className="flex justify-center py-8">
-                    <div className="inline-block h-6 w-6 animate-spin rounded-full border-2 border-solid border-rose-500 border-r-transparent"></div>
+                    <div className="relative">
+                      <div className="w-10 h-10 border-4 border-rose-200 border-t-rose-500 rounded-full animate-spin"></div>
+                      <Heart className="absolute top-1/2 left-1/2 transform -translate-x-1/2 -translate-y-1/2 w-4 h-4 text-rose-500 animate-pulse" />
+                    </div>
                   </div>
                 ) : modalList.length === 0 ? (
-                  <p className="text-center text-gray-400 py-8">No {modalType} yet.</p>
+                  <div className="text-center py-8">
+                    <UserPlus className="w-12 h-12 text-rose-300 mx-auto mb-3" />
+                    <p className="text-gray-500">No {modalType} yet</p>
+                  </div>
                 ) : (
                   <ul className="space-y-2">
                     {modalList.map(user => (
@@ -356,12 +625,21 @@ const Profile = () => {
                         <Link
                           to={`/profile/${user.username}`}
                           onClick={closeModal}
-                          className="flex items-center space-x-3 p-2 rounded-lg hover:bg-rose-50 transition"
+                          className="flex items-center space-x-3 p-3 rounded-xl hover:bg-rose-50 transition group"
                         >
-                          <div className="h-8 w-8 rounded-full bg-rose-100 flex items-center justify-center text-rose-600 font-semibold text-sm">
-                            {user.username.charAt(0).toUpperCase()}
+                          <div className="h-10 w-10 rounded-full bg-gradient-to-br from-rose-400 to-pink-500 flex items-center justify-center text-white font-semibold text-sm shadow-md">
+                            {user.profilePic ? (
+                              <img src={user.profilePic} alt={user.username} className="w-full h-full object-cover rounded-full" />
+                            ) : (
+                              user.username.charAt(0).toUpperCase()
+                            )}
                           </div>
-                          <span className="text-gray-700">{user.username}</span>
+                          <div className="flex-1">
+                            <span className="text-gray-800 font-medium group-hover:text-rose-600 transition">
+                              {user.username}
+                            </span>
+                          </div>
+                          <ChevronRight className="w-4 h-4 text-gray-400 group-hover:text-rose-500 transition" />
                         </Link>
                       </li>
                     ))}
@@ -372,22 +650,22 @@ const Profile = () => {
           </div>
         )}
 
-        {/* Avatar Modal (unchanged) */}
+        {/* Avatar Modal */}
         {avatarModalOpen && profileUser.profilePic && (
           <div
-            className="fixed inset-0 bg-black bg-opacity-90 z-50 flex items-center justify-center p-4"
+            className="fixed inset-0 bg-black/90 backdrop-blur-sm z-50 flex items-center justify-center p-4"
             onClick={() => setAvatarModalOpen(false)}
           >
             <div className="relative max-w-3xl max-h-full">
               <img
                 src={profileUser.profilePic}
                 alt={profileUser.username}
-                className="max-w-full max-h-[90vh] object-contain rounded-lg shadow-2xl"
+                className="max-w-full max-h-[90vh] object-contain rounded-2xl shadow-2xl"
                 onClick={(e) => e.stopPropagation()}
               />
               <button
                 onClick={() => setAvatarModalOpen(false)}
-                className="absolute top-4 right-4 text-white bg-black/50 hover:bg-black/70 rounded-full p-2 transition"
+                className="absolute top-4 right-4 text-white bg-black/50 hover:bg-black/70 backdrop-blur-sm rounded-full p-3 transition"
               >
                 <X className="w-6 h-6" />
               </button>
@@ -395,6 +673,16 @@ const Profile = () => {
           </div>
         )}
       </div>
+
+      <style>{`
+        @keyframes fadeIn {
+          from { opacity: 0; transform: translateY(10px); }
+          to { opacity: 1; transform: translateY(0); }
+        }
+        .animate-fadeIn {
+          animation: fadeIn 0.3s ease-out;
+        }
+      `}</style>
     </div>
   );
 };
