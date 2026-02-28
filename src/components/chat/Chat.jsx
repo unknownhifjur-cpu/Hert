@@ -7,6 +7,7 @@ import {
   Edit2, Trash2, X, CheckCircle,
   Search, Heart, Lock
 } from 'lucide-react';
+import io from 'socket.io-client';
 
 const Chat = () => {
   const { userId } = useParams();
@@ -17,7 +18,6 @@ const Chat = () => {
   const [loading, setLoading] = useState(true);
   const [partner, setPartner] = useState(null);
   const [conversations, setConversations] = useState([]);
-  const [sending, setSending] = useState(false);
   const [editingMessage, setEditingMessage] = useState(null);
   const [showMessageMenu, setShowMessageMenu] = useState(null);
   const [showChatMenu, setShowChatMenu] = useState(false);
@@ -26,7 +26,9 @@ const Chat = () => {
   const messagesEndRef = useRef(null);
   const inputRef = useRef(null);
   const menuRef = useRef(null);
+  const socketRef = useRef(null);
 
+  // ---- Initial data fetching ----
   useEffect(() => {
     if (userId) fetchMessages(userId);
     else fetchConversations();
@@ -48,6 +50,41 @@ const Chat = () => {
     return () => document.removeEventListener('mousedown', handleClickOutside);
   }, []);
 
+  // ---- Socket.io connection & events ----
+  useEffect(() => {
+    if (!user || !userId) return;
+
+    const token = localStorage.getItem('token');
+    const socket = io(import.meta.env.VITE_API_URL || 'http://localhost:5000', {
+      auth: { token },
+      transports: ['websocket']
+    });
+    socketRef.current = socket;
+
+    socket.on('connect', () => {
+      console.log('Socket connected');
+      socket.emit('join-conversation', { partnerId: userId });
+    });
+
+    socket.on('new-message', (newMsg) => {
+      setMessages(prev => {
+        // Avoid duplicate messages (e.g., when sending from self)
+        if (prev.some(msg => msg._id === newMsg._id)) return prev;
+        return [...prev, newMsg];
+      });
+    });
+
+    // Optional: handle typing indicators
+    socket.on('user-typing', ({ userId: typingUserId, isTyping }) => {
+      // You can add a "typing..." indicator here
+    });
+
+    return () => {
+      socket.disconnect();
+    };
+  }, [user, userId]);
+
+  // ---- Helper functions ----
   const scrollToBottom = () => {
     messagesEndRef.current?.scrollIntoView({ behavior: 'smooth' });
   };
@@ -88,25 +125,19 @@ const Chat = () => {
     }
   };
 
-  const sendMessage = async (e) => {
+  // Send message via socket (no API call needed – server saves & broadcasts)
+  const sendMessage = (e) => {
     e.preventDefault();
-    if (!newMessage.trim() || !userId) return;
-    setSending(true);
-    try {
-      const res = await api.post('/chat', {
-        receiverId: userId,
-        message: newMessage.trim(),
-        replyTo: replyingTo?._id
-      });
-      setMessages([...messages, res.data]);
-      setNewMessage('');
-      setReplyingTo(null);
-      setTimeout(scrollToBottom, 100);
-    } catch (err) {
-      console.error(err);
-    } finally {
-      setSending(false);
-    }
+    if (!newMessage.trim() || !userId || !socketRef.current) return;
+
+    socketRef.current.emit('send-message', {
+      receiverId: userId,
+      message: newMessage.trim(),
+      replyTo: replyingTo?._id
+    });
+
+    setNewMessage('');
+    setReplyingTo(null);
   };
 
   const editMessage = async () => {
@@ -187,6 +218,7 @@ const Chat = () => {
     conv.user.username.toLowerCase().includes(searchQuery.toLowerCase())
   );
 
+  // ---- Render ----
   if (loading && !userId) {
     return (
       <div className="min-h-screen bg-gradient-to-br from-rose-50 to-pink-50 flex items-center justify-center">
@@ -198,7 +230,7 @@ const Chat = () => {
     );
   }
 
-  // Conversations list view – back button now goes to home
+  // Conversations list view
   if (!userId) {
     return (
       <div className="min-h-screen bg-gradient-to-br from-rose-50 via-white to-pink-50">
@@ -326,7 +358,7 @@ const Chat = () => {
 
   return (
     <div className="h-screen bg-gradient-to-br from-rose-50 via-white to-pink-50 flex flex-col">
-      {/* Sticky header with clear chat button (always on top) */}
+      {/* Sticky header with clear chat button */}
       <div className="sticky top-0 z-20 bg-white/80 backdrop-blur-sm border-b border-rose-100 shadow-sm">
         <div className="max-w-3xl mx-auto w-full px-4">
           <div className="flex items-center justify-between py-3">
@@ -427,7 +459,7 @@ const Chat = () => {
                         )}
                       </div>
                     )}
-                    
+
                     {editingMessage && editingMessage.id === msg._id ? (
                       <div className="max-w-[70%] w-full bg-white border-2 border-rose-200 rounded-2xl p-3 shadow-lg">
                         <textarea
@@ -484,7 +516,7 @@ const Chat = () => {
                             </div>
                           </div>
                         </div>
-                        
+
                         {/* Message menu */}
                         {isMe && (
                           <div className="relative ml-2 self-center opacity-0 group-hover:opacity-100 transition-opacity">
@@ -524,7 +556,6 @@ const Chat = () => {
                   </div>
                 );
               })}
-              
               <div ref={messagesEndRef} />
             </div>
           )}
@@ -560,23 +591,17 @@ const Chat = () => {
               onChange={(e) => setNewMessage(e.target.value)}
               placeholder="Type a secure message..."
               className="flex-1 py-3 px-3 bg-transparent focus:outline-none text-gray-700 placeholder-rose-300"
-              disabled={sending}
             />
-            
             <button
               type="submit"
-              disabled={!newMessage.trim() || sending}
+              disabled={!newMessage.trim()}
               className="p-2.5 bg-gradient-to-r from-rose-500 to-pink-500 text-white rounded-full hover:from-rose-600 hover:to-pink-600 transition disabled:opacity-50 disabled:cursor-not-allowed shadow-md"
             >
-              {sending ? (
-                <div className="w-5 h-5 border-2 border-white border-t-transparent rounded-full animate-spin" />
-              ) : (
-                <Send className="w-5 h-5" />
-              )}
+              <Send className="w-5 h-5" />
             </button>
           </div>
         </form>
-        
+
         {/* Encryption notice */}
         <div className="flex items-center justify-center space-x-1 mt-2">
           <Lock className="w-3 h-3 text-rose-300" />
