@@ -16,7 +16,7 @@ import Chat from './components/chat/Chat';
 import InstallPrompt from './components/pwa/InstallPrompt';
 import OfflineIndicator from './components/pwa/OfflineIndicator';
 
-// Premium Loader Component
+// Premium Loader Component - Updated Romantic Style
 const PremiumLoader = () => {
   const [visible, setVisible] = useState(false);
 
@@ -27,46 +27,82 @@ const PremiumLoader = () => {
 
   return (
     <div
-      className={`fixed inset-0 flex items-center justify-center bg-white transition-opacity duration-500 ${
+      className={`fixed inset-0 flex items-center justify-center bg-gradient-to-br from-rose-50 via-white to-pink-50 transition-opacity duration-500 ${
         visible ? 'opacity-100' : 'opacity-0'
       }`}
     >
-      <div className="flex flex-col items-center space-y-8">
-        {/* Loader */}
-        <div className="relative flex items-center justify-center">
-          {/* Soft Glow */}
-          <div className="absolute w-32 h-32 bg-rose-100 rounded-full blur-3xl opacity-40"></div>
+      <div className="relative flex flex-col items-center">
+        {/* Floating Hearts Background */}
+        {[...Array(6)].map((_, i) => (
+          <Heart
+            key={i}
+            className="absolute text-rose-200/30 animate-float"
+            style={{
+              left: `${Math.random() * 200 - 100}%`,
+              top: `${Math.random() * 200 - 100}%`,
+              animationDelay: `${i * 0.5}s`,
+              width: `${20 + i * 5}px`,
+              height: `${20 + i * 5}px`,
+            }}
+          />
+        ))}
 
-          {/* Rotating Gradient Ring */}
-          <div className="w-24 h-24 rounded-full loader-ring"></div>
-
-          {/* Heart Logo */}
-          <Heart className="absolute w-10 h-10 text-rose-500 animate-logoPulse" />
+        {/* Main Heart */}
+        <div className="relative mb-8">
+          <div className="absolute inset-0 bg-rose-200 rounded-full blur-2xl animate-pulse"></div>
+          <div className="relative w-32 h-32 flex items-center justify-center">
+            <Heart 
+              className="w-20 h-20 text-rose-500 animate-glow" 
+              fill="#f43f5e"
+            />
+            <div className="absolute inset-0 border-4 border-rose-300 rounded-full animate-ripple"></div>
+            <div className="absolute inset-0 border-4 border-pink-300 rounded-full animate-ripple delay-500"></div>
+          </div>
         </div>
 
         {/* Text */}
-        <p className="text-sm text-gray-500 tracking-wide">
-          Preparing your secure space...
-        </p>
+        <h1 className="text-3xl font-light text-gray-800 mb-2">
+          Welcome to <span className="font-bold text-rose-500">HeartLock</span>
+        </h1>
+        <p className="text-gray-500 text-sm">Where memories are secured with love</p>
+        
+        {/* Dots */}
+        <div className="flex space-x-2 mt-6">
+          <div className="w-2 h-2 bg-rose-300 rounded-full animate-wave"></div>
+          <div className="w-2 h-2 bg-rose-400 rounded-full animate-wave delay-100"></div>
+          <div className="w-2 h-2 bg-rose-500 rounded-full animate-wave delay-200"></div>
+          <div className="w-2 h-2 bg-rose-600 rounded-full animate-wave delay-300"></div>
+        </div>
       </div>
 
-      {/* Inline animations */}
       <style>{`
-        .loader-ring {
-          border: 3px solid #fce7f3;
-          border-top-color: #f43f5e;
-          border-right-color: #f43f5e;
-          animation: spin 1s cubic-bezier(0.4, 0, 0.2, 1) infinite;
+        @keyframes float {
+          0%, 100% { transform: translateY(0) rotate(0deg); }
+          50% { transform: translateY(-20px) rotate(10deg); }
         }
-        @keyframes spin {
-          to { transform: rotate(360deg); }
+        @keyframes glow {
+          0%, 100% { filter: drop-shadow(0 0 10px rgba(244, 63, 94, 0.5)); }
+          50% { filter: drop-shadow(0 0 20px rgba(244, 63, 94, 0.8)); }
         }
-        @keyframes logoPulse {
-          0%, 100% { transform: scale(1); opacity: 1; }
-          50% { transform: scale(1.1); opacity: 0.8; }
+        @keyframes ripple {
+          0% { transform: scale(1); opacity: 0.5; }
+          100% { transform: scale(1.5); opacity: 0; }
         }
-        .animate-logoPulse {
-          animation: logoPulse 2s ease-in-out infinite;
+        @keyframes wave {
+          0%, 100% { transform: scaleY(1); }
+          50% { transform: scaleY(1.5); }
+        }
+        .animate-float {
+          animation: float 3s ease-in-out infinite;
+        }
+        .animate-glow {
+          animation: glow 2s ease-in-out infinite;
+        }
+        .animate-ripple {
+          animation: ripple 2s ease-out infinite;
+        }
+        .animate-wave {
+          animation: wave 0.8s ease-in-out infinite;
         }
       `}</style>
     </div>
