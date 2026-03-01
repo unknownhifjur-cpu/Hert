@@ -91,13 +91,17 @@ const Notifications = () => {
     setActionLoading(prev => ({ ...prev, [id]: true }));
     try {
       await api.post(`/bond/accept/${notif.sender._id}`);
-      // Remove the notification immediately
+      // Success – remove the notification
       setNotifications(prev => prev.filter(n => n._id !== id));
     } catch (err) {
       console.error('Accept failed', err);
-      // If the error is "No request from this user", the notification is stale – remove it.
-      if (err.response?.status === 400 && err.response?.data?.error === 'No request from this user') {
+      // On any 400, the notification is likely stale – remove it.
+      if (err.response?.status === 400) {
         setNotifications(prev => prev.filter(n => n._id !== id));
+        // Show alert only if it's not the expected "No request" message
+        if (err.response?.data?.error && err.response.data.error !== 'No request from this user') {
+          alert(err.response.data.error);
+        }
       } else {
         alert(err.response?.data?.error || 'Failed to accept request');
       }
@@ -114,8 +118,11 @@ const Notifications = () => {
       setNotifications(prev => prev.filter(n => n._id !== id));
     } catch (err) {
       console.error('Reject failed', err);
-      if (err.response?.status === 400 && err.response?.data?.error === 'No request from this user') {
+      if (err.response?.status === 400) {
         setNotifications(prev => prev.filter(n => n._id !== id));
+        if (err.response?.data?.error && err.response.data.error !== 'No request from this user') {
+          alert(err.response.data.error);
+        }
       } else {
         alert(err.response?.data?.error || 'Failed to reject request');
       }
