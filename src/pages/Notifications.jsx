@@ -75,7 +75,6 @@ const Notifications = () => {
     try {
       await api.post(`/users/${notif.sender.username}/follow`);
       await markAsRead(id);
-      // Mark locally that we've followed back – this will make the button disappear
       setNotifications(prev =>
         prev.map(n => (n._id === id ? { ...n, followedBack: true } : n))
       );
@@ -96,7 +95,12 @@ const Notifications = () => {
       setNotifications(prev => prev.filter(n => n._id !== id));
     } catch (err) {
       console.error('Accept failed', err);
-      alert(err.response?.data?.error || 'Failed to accept request');
+      // If the error is "No request from this user", the notification is stale – remove it.
+      if (err.response?.status === 400 && err.response?.data?.error === 'No request from this user') {
+        setNotifications(prev => prev.filter(n => n._id !== id));
+      } else {
+        alert(err.response?.data?.error || 'Failed to accept request');
+      }
     } finally {
       setActionLoading(prev => ({ ...prev, [id]: false }));
     }
@@ -107,11 +111,14 @@ const Notifications = () => {
     setActionLoading(prev => ({ ...prev, [id]: true }));
     try {
       await api.post(`/bond/reject/${notif.sender._id}`);
-      // Remove the notification immediately
       setNotifications(prev => prev.filter(n => n._id !== id));
     } catch (err) {
       console.error('Reject failed', err);
-      alert(err.response?.data?.error || 'Failed to reject request');
+      if (err.response?.status === 400 && err.response?.data?.error === 'No request from this user') {
+        setNotifications(prev => prev.filter(n => n._id !== id));
+      } else {
+        alert(err.response?.data?.error || 'Failed to reject request');
+      }
     } finally {
       setActionLoading(prev => ({ ...prev, [id]: false }));
     }
