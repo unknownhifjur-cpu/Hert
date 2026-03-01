@@ -75,7 +75,7 @@ const Notifications = () => {
     try {
       await api.post(`/users/${notif.sender.username}/follow`);
       await markAsRead(id);
-      // Mark locally that we've followed back
+      // Mark locally that we've followed back – this will make the button disappear
       setNotifications(prev =>
         prev.map(n => (n._id === id ? { ...n, followedBack: true } : n))
       );
@@ -92,10 +92,12 @@ const Notifications = () => {
     setActionLoading(prev => ({ ...prev, [id]: true }));
     try {
       await api.post(`/bond/accept/${notif.sender._id}`);
-      await fetchNotifications();
+      // Remove the notification immediately
+      setNotifications(prev => prev.filter(n => n._id !== id));
     } catch (err) {
       console.error('Accept failed', err);
       alert(err.response?.data?.error || 'Failed to accept request');
+    } finally {
       setActionLoading(prev => ({ ...prev, [id]: false }));
     }
   };
@@ -105,10 +107,12 @@ const Notifications = () => {
     setActionLoading(prev => ({ ...prev, [id]: true }));
     try {
       await api.post(`/bond/reject/${notif.sender._id}`);
-      await fetchNotifications();
+      // Remove the notification immediately
+      setNotifications(prev => prev.filter(n => n._id !== id));
     } catch (err) {
       console.error('Reject failed', err);
       alert(err.response?.data?.error || 'Failed to reject request');
+    } finally {
       setActionLoading(prev => ({ ...prev, [id]: false }));
     }
   };
@@ -186,7 +190,6 @@ const Notifications = () => {
         ) : (
           <ul className="space-y-3">
             {notifications.map(notif => {
-              // Determine if current user already follows the sender (for follow notifications)
               const alreadyFollowing = user?.following?.some(
                 followId => followId === notif.sender?._id
               );
@@ -209,7 +212,6 @@ const Notifications = () => {
                         <div className="h-10 w-10 rounded-full bg-gradient-to-br from-rose-400 to-pink-500 flex items-center justify-center text-white font-semibold text-sm shadow-sm">
                           {notif.sender?.username?.charAt(0).toUpperCase() || '?'}
                         </div>
-                        {/* Type icon badge */}
                         <div className="absolute -bottom-1 -right-1 h-5 w-5 rounded-full bg-white shadow-sm flex items-center justify-center">
                           {getIcon(notif.type)}
                         </div>
@@ -235,29 +237,19 @@ const Notifications = () => {
 
                     {/* Action buttons */}
                     <div className="flex items-center space-x-2">
-                      {notif.type === 'follow' && !alreadyFollowing && (
-                        notif.followedBack ? (
-                          <button
-                            disabled
-                            className="px-3 py-1.5 text-xs font-medium bg-gray-200 text-gray-500 rounded-full cursor-default flex items-center space-x-1"
-                          >
-                            <Check className="w-3 h-3" />
-                            <span>Following</span>
-                          </button>
-                        ) : (
-                          <button
-                            onClick={() => handleFollowBack(notif)}
-                            disabled={actionLoading[notif._id]}
-                            className="px-3 py-1.5 text-xs font-medium bg-rose-100 text-rose-600 rounded-full hover:bg-rose-200 transition disabled:opacity-50 flex items-center space-x-1"
-                          >
-                            {actionLoading[notif._id] ? (
-                              <Loader2 className="w-3 h-3 animate-spin" />
-                            ) : (
-                              <UserPlus className="w-3 h-3" />
-                            )}
-                            <span>Follow back</span>
-                          </button>
-                        )
+                      {notif.type === 'follow' && !alreadyFollowing && !notif.followedBack && (
+                        <button
+                          onClick={() => handleFollowBack(notif)}
+                          disabled={actionLoading[notif._id]}
+                          className="px-3 py-1.5 text-xs font-medium bg-rose-100 text-rose-600 rounded-full hover:bg-rose-200 transition disabled:opacity-50 flex items-center space-x-1"
+                        >
+                          {actionLoading[notif._id] ? (
+                            <Loader2 className="w-3 h-3 animate-spin" />
+                          ) : (
+                            <UserPlus className="w-3 h-3" />
+                          )}
+                          <span>Follow back</span>
+                        </button>
                       )}
 
                       {notif.type === 'bond_request' && (
