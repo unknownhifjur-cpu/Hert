@@ -12,6 +12,8 @@ const BondDashboard = () => {
   const [bondData, setBondData] = useState(null);
   const [partner, setPartner] = useState(null);
   const [loading, setLoading] = useState(true);
+  const [bondStatus, setBondStatus] = useState(null);
+  const [error, setError] = useState(null);
 
   useEffect(() => {
     fetchData();
@@ -19,23 +21,39 @@ const BondDashboard = () => {
 
   const fetchData = async () => {
     try {
-      const bondPromise = api.get('/bond/shared').catch(err => {
+      // First fetch bond status
+      const statusRes = await api.get('/bond/status');
+      const { status, partner } = statusRes.data;
+      setBondStatus(status);
+      setPartner(partner);
+
+      if (status !== 'bonded') {
+        // Not bonded – nothing to load
+        setLoading(false);
+        return;
+      }
+
+      // Bonded – now fetch bond data with fallback
+      try {
+        const bondRes = await api.get('/bond/shared');
+        setBondData(bondRes.data);
+      } catch (err) {
         if (err.response?.status === 404) {
           console.warn('Shared bond not found, falling back to legacy data.');
-          return api.get('/bond/data');
+          try {
+            const legacyRes = await api.get('/bond/data');
+            setBondData(legacyRes.data);
+          } catch (legacyErr) {
+            console.error('Legacy bond data also not found', legacyErr);
+            setError('Your bond data could not be loaded. Please try again later.');
+          }
+        } else {
+          throw err; // rethrow other errors to be caught below
         }
-        throw err;
-      });
-
-      const [bondRes, statusRes] = await Promise.all([
-        bondPromise,
-        api.get('/bond/status')
-      ]);
-
-      setBondData(bondRes.data);
-      setPartner(statusRes.data.partner);
+      }
     } catch (err) {
       console.error('Failed to load bond data', err);
+      setError('Unable to load bond information. Please check your connection.');
     } finally {
       setLoading(false);
     }
@@ -86,7 +104,7 @@ const BondDashboard = () => {
     { path: '/bond/gift', icon: Gift, label: 'Gift System', color: 'pink' }
   ];
 
-  // ----- Stylish Loading Screen -----
+  // ----- Loading Screen -----
   if (loading) {
     return (
       <div className="min-h-screen bg-gradient-to-br from-rose-50 via-white to-pink-50 flex items-center justify-center">
@@ -102,17 +120,38 @@ const BondDashboard = () => {
     );
   }
 
-  // ----- Stylish Error Screen -----
+  // ----- Not Bonded State -----
+  if (bondStatus !== 'bonded') {
+    return (
+      <div className="min-h-screen bg-gradient-to-br from-rose-50 via-white to-pink-50 flex items-center justify-center px-4">
+        <div className="text-center bg-white/80 backdrop-blur-sm rounded-2xl shadow-lg border border-rose-100 p-8 max-w-md">
+          <HeartHandshake className="w-16 h-16 text-rose-400 mx-auto mb-4" />
+          <h2 className="text-2xl font-bold text-gray-800 mb-2">No Bond Yet</h2>
+          <p className="text-gray-600 mb-6">You haven't created a bond with anyone yet.</p>
+          <Link
+            to="/bond"
+            className="px-6 py-3 bg-rose-500 hover:bg-rose-600 text-white rounded-xl font-medium transition shadow-lg shadow-rose-500/25"
+          >
+            Find Your Bond
+          </Link>
+        </div>
+      </div>
+    );
+  }
+
+  // ----- Error State (bonded but no data) -----
   if (!bondData) {
     return (
       <div className="min-h-screen bg-gradient-to-br from-rose-50 via-white to-pink-50 flex items-center justify-center px-4">
         <div className="text-center bg-white/80 backdrop-blur-sm rounded-2xl shadow-lg border border-rose-100 p-8 max-w-md">
           <Lock className="w-16 h-16 text-rose-400 mx-auto mb-4" />
-          <h2 className="text-2xl font-bold text-gray-800 mb-2">Oops!</h2>
-          <p className="text-gray-600 mb-6">We couldn't load your bond data. This might be temporary.</p>
+          <h2 className="text-2xl font-bold text-gray-800 mb-2">Bond Data Unavailable</h2>
+          <p className="text-gray-600 mb-6">
+            {error || "We couldn't load your bond data. This might be temporary."}
+          </p>
           <div className="flex flex-col sm:flex-row gap-3 justify-center">
             <button
-              onClick={() => navigate('/bond/dashboard')}
+              onClick={() => window.location.reload()}
               className="px-6 py-3 bg-rose-500 hover:bg-rose-600 text-white rounded-xl font-medium transition shadow-lg shadow-rose-500/25"
             >
               Try Again
@@ -129,11 +168,11 @@ const BondDashboard = () => {
     );
   }
 
-  // ----- Main Dashboard (unchanged) -----
+  // ----- Main Dashboard -----
   return (
     <div className="min-h-screen bg-gradient-to-br from-rose-50 via-white to-pink-50 pt-16 pb-20 px-4">
       <div className="max-w-7xl mx-auto">
-        {/* ... rest of the dashboard JSX (same as before) ... */}
+        {/* Header with partner */}
         <div className="mb-8 flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
           <div className="flex items-center space-x-3">
             <HeartHandshake className="w-8 h-8 text-rose-500" />

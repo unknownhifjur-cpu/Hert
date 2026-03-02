@@ -11,6 +11,51 @@ const Register = () => {
   const { register } = useContext(AuthContext);
   const navigate = useNavigate();
 
+  // Password strength state
+  const [passwordStrength, setPasswordStrength] = useState({
+    score: 0,
+    label: '',
+    color: '',
+  });
+
+  // Function to calculate password strength
+  const calculateStrength = (pass) => {
+    let score = 0;
+    if (!pass) {
+      setPasswordStrength({ score: 0, label: '', color: '' });
+      return;
+    }
+
+    // Criteria
+    if (pass.length >= 8) score += 1;
+    if (/[a-z]/.test(pass)) score += 1;
+    if (/[A-Z]/.test(pass)) score += 1;
+    if (/[0-9]/.test(pass)) score += 1;
+    if (/[^a-zA-Z0-9]/.test(pass)) score += 1;
+
+    // Map score to label and color
+    let label = '';
+    let color = '';
+    if (score <= 2) {
+      label = 'Weak';
+      color = 'bg-red-500';
+    } else if (score <= 4) {
+      label = 'Medium';
+      color = 'bg-yellow-500';
+    } else {
+      label = 'Strong';
+      color = 'bg-green-500';
+    }
+
+    setPasswordStrength({ score, label, color });
+  };
+
+  const handlePasswordChange = (e) => {
+    const newPassword = e.target.value;
+    setPassword(newPassword);
+    calculateStrength(newPassword);
+  };
+
   const handleSubmit = async (e) => {
     e.preventDefault();
     const result = await register(username, email, password);
@@ -91,7 +136,7 @@ const Register = () => {
             </div>
           </div>
 
-          {/* Password Field with Icon */}
+          {/* Password Field with Icon and Strength Meter */}
           <div className="mb-6">
             <label className="block text-sm font-medium text-gray-700 mb-1">
               Password
@@ -101,12 +146,45 @@ const Register = () => {
               <input
                 type="password"
                 value={password}
-                onChange={(e) => setPassword(e.target.value)}
+                onChange={handlePasswordChange}
                 required
                 className="w-full pl-10 pr-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-rose-200 focus:border-rose-400 transition"
                 placeholder="••••••••"
               />
             </div>
+
+            {/* Password Strength Meter */}
+            {password && (
+              <div className="mt-2">
+                <div className="flex items-center justify-between mb-1">
+                  <span className="text-xs font-medium text-gray-500">
+                    Password strength:
+                  </span>
+                  <span
+                    className={`text-xs font-semibold ${
+                      passwordStrength.label === 'Weak'
+                        ? 'text-red-600'
+                        : passwordStrength.label === 'Medium'
+                        ? 'text-yellow-600'
+                        : passwordStrength.label === 'Strong'
+                        ? 'text-green-600'
+                        : ''
+                    }`}
+                  >
+                    {passwordStrength.label}
+                  </span>
+                </div>
+                <div className="w-full h-1.5 bg-gray-200 rounded-full overflow-hidden">
+                  <div
+                    className={`h-full ${passwordStrength.color} transition-all duration-300`}
+                    style={{ width: `${(passwordStrength.score / 5) * 100}%` }}
+                  ></div>
+                </div>
+                <p className="text-xs text-gray-400 mt-1">
+                  Use at least 8 characters, uppercase, lowercase, number, and symbol.
+                </p>
+              </div>
+            )}
           </div>
 
           {/* Submit Button with Icon & Hover/Active Effects */}
