@@ -75,10 +75,8 @@ const Chat = () => {
     if (!user || !userId) return;
 
     const token = localStorage.getItem('token');
-    // Use environment variable or fallback; remove explicit websocket transport to allow fallback
     const socket = io(import.meta.env.VITE_API_URL || 'https://hert-backend.onrender.com', {
       auth: { token },
-      // transports: ['websocket']   // removed to allow long‑polling fallback
     });
     socketRef.current = socket;
 
@@ -414,7 +412,7 @@ const Chat = () => {
   const groupedMessages = groupMessagesByDate();
 
   return (
-    <div className={`h-screen flex flex-col ${timeMode}`}>
+    <div className={`h-screen flex flex-col overflow-x-hidden ${timeMode}`}>
       {/* Sticky header */}
       <div className="sticky top-0 z-20 bg-white/80 backdrop-blur-sm border-b border-rose-100 shadow-sm">
         <div className="max-w-3xl mx-auto w-full px-4">
@@ -478,7 +476,7 @@ const Chat = () => {
 
       {/* Messages area with heartbeat */}
       <div
-        className={`flex-1 overflow-y-auto px-4 py-6 ${heartbeatClass}`}
+        className={`flex-1 overflow-y-auto overflow-x-hidden px-4 py-6 ${heartbeatClass}`}
         style={{ backgroundImage: 'radial-gradient(circle at 10px 10px, rgba(244, 63, 94, 0.05) 2px, transparent 0)', backgroundSize: '30px 30px' }}
       >
         <div className="max-w-3xl mx-auto">
@@ -683,12 +681,6 @@ const Chat = () => {
             </button>
           </div>
         </form>
-
-        {/* Encryption notice */}
-        <div className="flex items-center justify-center space-x-1 mt-2">
-          <Lock className="w-3 h-3 text-rose-300" />
-          <p className="text-xs text-rose-300">End-to-end encrypted</p>
-        </div>
       </div>
 
       <style>{`
