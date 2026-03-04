@@ -25,6 +25,8 @@ const Chat = () => {
   const [replyingTo, setReplyingTo] = useState(null);
   const [isPartnerOnline, setIsPartnerOnline] = useState(false);
   const [partnerTyping, setPartnerTyping] = useState(false);
+  const [partnerNotFound, setPartnerNotFound] = useState(false);
+  const [conversationsError, setConversationsError] = useState(null);
   const typingTimeoutRef = useRef(null);
   const messagesEndRef = useRef(null);
   const inputRef = useRef(null);
@@ -94,6 +96,7 @@ const Chat = () => {
 
   const fetchMessages = async (otherUserId) => {
     setLoading(true);
+    setPartnerNotFound(false);
     try {
       const res = await api.get(`/chat/${otherUserId}`);
       setMessages(res.data);
@@ -104,11 +107,20 @@ const Chat = () => {
         try {
           const userRes = await api.get(`/users/id/${otherUserId}`);
           setPartner(userRes.data);
-        } catch (err) {}
+        } catch (err) {
+          if (err.response?.status === 404) {
+            setPartnerNotFound(true);
+          } else {
+            console.error(err);
+          }
+        }
       }
       await api.put(`/chat/read/${otherUserId}`);
     } catch (err) {
       console.error(err);
+      if (err.response?.status === 404) {
+        setPartnerNotFound(true);
+      }
     } finally {
       setLoading(false);
     }
@@ -116,11 +128,13 @@ const Chat = () => {
 
   const fetchConversations = async () => {
     setLoading(true);
+    setConversationsError(null);
     try {
       const res = await api.get('/chat/conversations/list');
       setConversations(res.data);
     } catch (err) {
       console.error(err);
+      setConversationsError('Failed to load conversations. Please try again.');
     } finally {
       setLoading(false);
     }
@@ -128,7 +142,7 @@ const Chat = () => {
 
   const sendMessage = (e) => {
     e.preventDefault();
-    if (!newMessage.trim() || !userId || !socketRef.current) return;
+    if (!newMessage.trim() || !userId || !socketRef.current || partnerNotFound) return;
     if (typingTimeoutRef.current) {
       clearTimeout(typingTimeoutRef.current);
       socketRef.current.emit('typing', { partnerId: userId, isTyping: false });
@@ -143,7 +157,7 @@ const Chat = () => {
   };
 
   const handleTyping = () => {
-    if (!socketRef.current) return;
+    if (!socketRef.current || partnerNotFound) return;
     socketRef.current.emit('typing', { partnerId: userId, isTyping: true });
     if (typingTimeoutRef.current) clearTimeout(typingTimeoutRef.current);
     typingTimeoutRef.current = setTimeout(() => {
@@ -253,7 +267,6 @@ const Chat = () => {
             background: 'linear-gradient(135deg, #6d28d9 0%, #9333ea 50%, #db2777 100%)',
             borderRadius: '0 0 40px 0'
           }} />
-          {/* Decorative blobs */}
           <div className="absolute top-4 right-16 w-16 h-16 rounded-full opacity-20" style={{ background: '#a855f7' }} />
           <div className="absolute top-12 right-6 w-10 h-10 rounded-full opacity-30" style={{ background: '#ec4899' }} />
           <div className="absolute bottom-8 left-8 w-8 h-8 rounded-full opacity-20" style={{ background: '#c084fc' }} />
@@ -326,7 +339,17 @@ const Chat = () => {
 
         {/* Conversation list */}
         <div className="flex-1 overflow-y-auto px-3 pb-4">
-          {filteredConversations.length === 0 ? (
+          {conversationsError ? (
+            <div className="text-center py-10">
+              <p className="text-red-500 text-sm mb-3">{conversationsError}</p>
+              <button
+                onClick={fetchConversations}
+                className="px-4 py-2 bg-purple-600 text-white rounded-full text-sm hover:bg-purple-700 transition"
+              >
+                Retry
+              </button>
+            </div>
+          ) : filteredConversations.length === 0 ? (
             <div className="text-center py-14">
               <div className="w-14 h-14 rounded-full mx-auto mb-3 flex items-center justify-center" style={{ background: '#ede9fe' }}>
                 <Heart className="w-7 h-7 text-purple-400" />
@@ -387,7 +410,17 @@ const Chat = () => {
                 className="p-2 rounded-full hover:bg-purple-50 transition md:hidden">
                 <ArrowLeft className="w-5 h-5 text-purple-600" />
               </button>
-              {partner && (
+              {partnerNotFound ? (
+                <>
+                  <div className="w-11 h-11 rounded-full bg-gray-200 flex items-center justify-center">
+                    <span className="text-gray-500 font-bold">?</span>
+                  </div>
+                  <div>
+                    <h2 className="font-bold text-base text-gray-500">User not available</h2>
+                    <p className="text-xs text-gray-400">Account may have been deleted</p>
+                  </div>
+                </>
+              ) : partner ? (
                 <>
                   <Avatar src={partner.profilePic} name={partner.username} size="md" online={isPartnerOnline} />
                   <div>
@@ -397,6 +430,11 @@ const Chat = () => {
                     </p>
                   </div>
                 </>
+              ) : (
+                <div className="flex items-center gap-3">
+                  <div className="w-11 h-11 rounded-full bg-gray-200 animate-pulse" />
+                  <div className="h-4 w-24 bg-gray-200 rounded animate-pulse" />
+                </div>
               )}
             </div>
             <div className="flex items-center gap-2">
@@ -433,6 +471,14 @@ const Chat = () => {
               {loading ? (
                 <div className="flex justify-center pt-10">
                   <div className="w-8 h-8 rounded-full border-4 border-purple-200 border-t-purple-600 animate-spin" />
+                </div>
+              ) : partnerNotFound ? (
+                <div className="flex flex-col items-center justify-center h-64 text-center">
+                  <div className="w-16 h-16 rounded-2xl rotate-12 mb-4 flex items-center justify-center bg-gray-100">
+                    <Lock className="w-7 h-7 text-gray-400" />
+                  </div>
+                  <p className="font-semibold text-gray-600 mb-1">This user is no longer available</p>
+                  <p className="text-sm text-gray-400">You cannot send messages to a deleted account.</p>
                 </div>
               ) : messages.length === 0 ? (
                 <div className="flex flex-col items-center justify-center h-64 text-center">
@@ -538,7 +584,7 @@ const Chat = () => {
                       </div>
                     );
                   })}
-                  {partnerTyping && (
+                  {partnerTyping && !partnerNotFound && (
                     <div className="flex items-end gap-2">
                       <Avatar src={partner?.profilePic} name={partner?.username} size="sm" />
                       <div className="px-4 py-3 rounded-2xl rounded-bl-md flex gap-1 items-center"
@@ -556,7 +602,7 @@ const Chat = () => {
           </div>
 
           {/* Reply banner */}
-          {replyingTo && (
+          {replyingTo && !partnerNotFound && (
             <div className="px-5 pb-2 flex-shrink-0">
               <div className="max-w-2xl mx-auto flex items-center justify-between rounded-xl px-3 py-2 border"
                 style={{ background: '#f5f3ff', borderColor: '#ddd6fe' }}>
@@ -571,19 +617,19 @@ const Chat = () => {
             </div>
           )}
 
-          {/* Input area - mobile optimised */}
+          {/* Input area */}
           <div className="flex-shrink-0 px-5 pb-5 pt-2 border-t" style={{ borderColor: '#f3f4f6', background: 'white' }}>
             <div className="max-w-2xl mx-auto">
               <form onSubmit={sendMessage}
                 className="chat-input-form flex items-center gap-2 rounded-full px-3 py-2 border shadow-sm"
                 style={{ border: '1.5px solid #ede9fe', background: 'white' }}>
-                <button type="button"
-                  className="w-8 h-8 sm:w-8 sm:h-8 w-10 h-10 rounded-full flex-shrink-0 flex items-center justify-center transition hover:opacity-80"
+                <button type="button" disabled={partnerNotFound}
+                  className="w-8 h-8 sm:w-8 sm:h-8 w-10 h-10 rounded-full flex-shrink-0 flex items-center justify-center transition hover:opacity-80 disabled:opacity-30"
                   style={{ background: 'linear-gradient(135deg, #7c3aed, #a855f7)', color: 'white' }}>
                   <Plus className="w-4 h-4" />
                 </button>
-                <button type="button"
-                  className="w-8 h-8 sm:w-8 sm:h-8 w-10 h-10 rounded-full flex-shrink-0 flex items-center justify-center"
+                <button type="button" disabled={partnerNotFound}
+                  className="w-8 h-8 sm:w-8 sm:h-8 w-10 h-10 rounded-full flex-shrink-0 flex items-center justify-center disabled:opacity-30"
                   style={{ background: '#ede9fe', color: '#7c3aed' }}>
                   <Mic className="w-4 h-4" />
                 </button>
@@ -592,11 +638,12 @@ const Chat = () => {
                   type="text"
                   value={newMessage}
                   onChange={e => { setNewMessage(e.target.value); handleTyping(); }}
-                  placeholder="Type your message..."
-                  className="flex-1 py-1.5 px-2 bg-transparent outline-none text-sm sm:text-sm text-base"
+                  placeholder={partnerNotFound ? "Cannot send messages" : "Type your message..."}
+                  disabled={partnerNotFound}
+                  className="flex-1 py-1.5 px-2 bg-transparent outline-none text-sm sm:text-sm text-base disabled:text-gray-400"
                   style={{ color: '#1f2937' }}
                 />
-                <button type="submit" disabled={!newMessage.trim()}
+                <button type="submit" disabled={!newMessage.trim() || partnerNotFound}
                   className="w-9 h-9 sm:w-9 sm:h-9 w-11 h-11 rounded-full flex-shrink-0 flex items-center justify-center transition hover:opacity-80 disabled:opacity-40 disabled:cursor-not-allowed"
                   style={{ background: 'linear-gradient(135deg, #7c3aed, #a855f7)', color: 'white' }}>
                   <Send className="w-4 h-4" />
@@ -631,14 +678,13 @@ const Chat = () => {
           to { opacity: 1; transform: translateY(0); }
         }
 
-        /* Mobile optimisations for chat input */
         @media (max-width: 640px) {
           .chat-input-form button {
             min-width: 44px;
             min-height: 44px;
           }
           .chat-input-form input {
-            font-size: 16px; /* Prevents zoom on focus */
+            font-size: 16px;
             min-width: 80px;
           }
         }
