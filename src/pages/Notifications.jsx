@@ -6,20 +6,16 @@ import {
   Heart,
   MessageCircle,
   UserPlus,
-  HeartHandshake,
-  CheckCircle,
   Bell,
   Clock,
   ArrowLeft,
   CheckCheck,
-  Check,
-  X,
   Loader2
 } from 'lucide-react';
 
 /**
  * Notifications Component
- * Displays user notifications with real-time actions (follow back, accept/reject bond)
+ * Displays user notifications with real-time actions (follow back)
  * Features:
  * - Mark as read on click
  * - Optimistic updates for actions
@@ -30,7 +26,7 @@ import {
  * - Proper key usage and memoization
  */
 const Notifications = () => {
-  const { user, refreshUser } = useContext(AuthContext); // Assume refreshUser fetches latest user data
+  const { user, refreshUser } = useContext(AuthContext);
   const navigate = useNavigate();
   const [notifications, setNotifications] = useState([]);
   const [loading, setLoading] = useState(true);
@@ -65,7 +61,6 @@ const Notifications = () => {
 
   // Mark a single notification as read (optimistic update)
   const markAsRead = useCallback(async (id) => {
-    // Optimistically update local state
     setNotifications(prev =>
       prev.map(n => (n._id === id ? { ...n, read: true } : n))
     );
@@ -73,7 +68,6 @@ const Notifications = () => {
       await api.put(`/notifications/${id}/read`);
     } catch (err) {
       console.error('Failed to mark as read', err);
-      // Revert optimistic update on error
       setNotifications(prev =>
         prev.map(n => (n._id === id ? { ...n, read: false } : n))
       );
@@ -88,7 +82,7 @@ const Notifications = () => {
       await api.put('/notifications/read-all');
     } catch (err) {
       console.error('Failed to mark all as read', err);
-      setNotifications(previous); // revert
+      setNotifications(previous);
     }
   }, [notifications]);
 
@@ -101,8 +95,6 @@ const Notifications = () => {
       if (notif.photo) navigate(`/photo/${notif.photo._id}`);
     } else if (notif.type === 'follow') {
       navigate(`/profile/${notif.sender.username}`);
-    } else if (notif.type === 'bond_request' || notif.type === 'bond_accept') {
-      navigate('/bond');
     }
   }, [markAsRead, navigate]);
 
@@ -112,13 +104,10 @@ const Notifications = () => {
     setActionLoading(prev => ({ ...prev, [id]: true }));
     try {
       await api.post(`/users/${notif.sender.username}/follow`);
-      // Update local notification state (hide button)
       setNotifications(prev =>
         prev.map(n => (n._id === id ? { ...n, followedBack: true } : n))
       );
-      // Mark as read (optional – could keep notification but without button)
       await markAsRead(id);
-      // Refresh global user context to update following list
       if (refreshUser) await refreshUser();
     } catch (err) {
       console.error('Follow back failed', err);
@@ -127,48 +116,6 @@ const Notifications = () => {
       setActionLoading(prev => ({ ...prev, [id]: false }));
     }
   }, [markAsRead, refreshUser]);
-
-  // Accept bond request
-  const handleAcceptRequest = useCallback(async (notif) => {
-    const id = notif._id;
-    setActionLoading(prev => ({ ...prev, [id]: true }));
-    try {
-      await api.post(`/bond/accept/${notif.sender._id}`);
-      // Remove notification on success
-      setNotifications(prev => prev.filter(n => n._id !== id));
-      // Optionally refresh user if bond status changed
-      if (refreshUser) await refreshUser();
-    } catch (err) {
-      console.error('Accept failed', err);
-      if (err.response?.status === 400) {
-        // Stale notification – remove it silently
-        setNotifications(prev => prev.filter(n => n._id !== id));
-      } else {
-        alert(err.response?.data?.error || 'Failed to accept request. Please try again.');
-      }
-    } finally {
-      setActionLoading(prev => ({ ...prev, [id]: false }));
-    }
-  }, [refreshUser]);
-
-  // Reject bond request
-  const handleRejectRequest = useCallback(async (notif) => {
-    const id = notif._id;
-    setActionLoading(prev => ({ ...prev, [id]: true }));
-    try {
-      await api.post(`/bond/reject/${notif.sender._id}`);
-      setNotifications(prev => prev.filter(n => n._id !== id));
-    } catch (err) {
-      console.error('Reject failed', err);
-      if (err.response?.status === 400) {
-        setNotifications(prev => prev.filter(n => n._id !== id));
-      } else {
-        alert(err.response?.data?.error || 'Failed to reject request. Please try again.');
-      }
-    } finally {
-      setActionLoading(prev => ({ ...prev, [id]: false }));
-    }
-  }, []);
 
   // Helper: format relative time
   const formatTime = useCallback((dateString) => {
@@ -191,8 +138,6 @@ const Notifications = () => {
       case 'like': return <Heart className="w-4 h-4 text-rose-500" />;
       case 'comment': return <MessageCircle className="w-4 h-4 text-blue-500" />;
       case 'follow': return <UserPlus className="w-4 h-4 text-green-500" />;
-      case 'bond_request': return <HeartHandshake className="w-4 h-4 text-purple-500" />;
-      case 'bond_accept': return <CheckCircle className="w-4 h-4 text-emerald-500" />;
       default: return <Bell className="w-4 h-4 text-gray-400" />;
     }
   }, []);
@@ -267,7 +212,6 @@ const Notifications = () => {
         ) : (
           <ul className="space-y-3">
             {notifications.map(notif => {
-              // Convert both to string for safe comparison
               const alreadyFollowing = user?.following?.some(
                 followId => String(followId) === String(notif.sender?._id)
               );
@@ -276,9 +220,7 @@ const Notifications = () => {
                 <li key={notif._id}>
                   <div
                     className={`w-full p-4 rounded-xl transition-all duration-200 flex items-start space-x-3 ${
-                      !notif.read
-                        ? 'bg-rose-50/80'
-                        : 'bg-white/80'
+                      !notif.read ? 'bg-rose-50/80' : 'bg-white/80'
                     }`}
                   >
                     {/* Avatar and main content (clickable) */}
@@ -305,8 +247,6 @@ const Notifications = () => {
                             {notif.type === 'like' && 'liked your photo'}
                             {notif.type === 'comment' && 'commented on your photo'}
                             {notif.type === 'follow' && 'started following you'}
-                            {notif.type === 'bond_request' && 'sent you a love request'}
-                            {notif.type === 'bond_accept' && 'accepted your love request'}
                           </span>
                         </p>
                         <div className="flex items-center space-x-2 mt-1">
@@ -332,37 +272,6 @@ const Notifications = () => {
                           )}
                           <span>Follow back</span>
                         </button>
-                      )}
-
-                      {notif.type === 'bond_request' && (
-                        <>
-                          <button
-                            onClick={() => handleAcceptRequest(notif)}
-                            disabled={actionLoading[notif._id]}
-                            className="p-2 bg-emerald-100 text-emerald-600 rounded-full hover:bg-emerald-200 transition disabled:opacity-50"
-                            title="Accept"
-                            aria-label="Accept bond request"
-                          >
-                            {actionLoading[notif._id] ? (
-                              <Loader2 className="w-4 h-4 animate-spin" />
-                            ) : (
-                              <Check className="w-4 h-4" />
-                            )}
-                          </button>
-                          <button
-                            onClick={() => handleRejectRequest(notif)}
-                            disabled={actionLoading[notif._id]}
-                            className="p-2 bg-rose-100 text-rose-600 rounded-full hover:bg-rose-200 transition disabled:opacity-50"
-                            title="Reject"
-                            aria-label="Reject bond request"
-                          >
-                            {actionLoading[notif._id] ? (
-                              <Loader2 className="w-4 h-4 animate-spin" />
-                            ) : (
-                              <X className="w-4 h-4" />
-                            )}
-                          </button>
-                        </>
                       )}
 
                       {!notif.read && (

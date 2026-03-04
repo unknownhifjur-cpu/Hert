@@ -8,14 +8,6 @@ import Feed from './components/feed/Feed';
 import Upload from './components/upload/Upload';
 import Navbar from './components/layout/Navbar';
 import Profile from './components/profile/Profile';
-import BondLanding from './components/bond/BondLanding';
-import BondDashboard from './components/bond/BondDashboard';
-// import BondTimeline from './components/bond/BondTimeline';
-// import BondMoodTracker from './components/bond/BondMoodTracker';
-// import BondCompatibility from './components/bond/BondCompatibility';
-// import BondAnniversary from './components/bond/BondAnniversary';
-// import BondPrivacy from './components/bond/BondPrivacy';
-// import BondGift from './components/bond/BondGift';
 import EditProfile from './components/profile/EditProfile';
 import PhotoDetail from './components/photo/PhotoDetail';
 import Settings from './components/settings/Settings';
@@ -214,16 +206,7 @@ function AppRoutes() {
         <Route path="/" element={user ? <Feed /> : <Navigate to="/login" />} />
         <Route path="/upload" element={user ? <Upload /> : <Navigate to="/login" />} />
         <Route path="/settings" element={user ? <Settings /> : <Navigate to="/login" />} />
-
-        <Route path="/bond" element={user ? <BondLanding /> : <Navigate to="/login" />} />
-        {<Route path="/bond/dashboard" element={user ? <BondDashboard /> : <Navigate to="/login" />}/>}
-        {/* <Route path="/bond/timeline" element={user ? <BondTimeline /> : <Navigate to="/login" />} />
-        <Route path="/bond/mood" element={user ? <BondMoodTracker /> : <Navigate to="/login" />} />
-        <Route path="/bond/compatibility" element={user ? <BondCompatibility /> : <Navigate to="/login" />} />
-        <Route path="/bond/anniversary" element={user ? <BondAnniversary /> : <Navigate to="/login" />} />
-        <Route path="/bond/privacy" element={user ? <BondPrivacy /> : <Navigate to="/login" />} />
-        <Route path="/bond/gift" element={user ? <BondGift /> : <Navigate to="/login" />} />  */}
-
+        
         <Route path="/search" element={<SearchPage />} />
         <Route path="/notifications" element={<Notifications />} />
 
