@@ -571,19 +571,19 @@ const Chat = () => {
             </div>
           )}
 
-          {/* Input area */}
+          {/* Input area - mobile optimised */}
           <div className="flex-shrink-0 px-5 pb-5 pt-2 border-t" style={{ borderColor: '#f3f4f6', background: 'white' }}>
             <div className="max-w-2xl mx-auto">
               <form onSubmit={sendMessage}
-                className="flex items-center gap-2 rounded-full px-3 py-2 border shadow-sm"
+                className="chat-input-form flex items-center gap-2 rounded-full px-3 py-2 border shadow-sm"
                 style={{ border: '1.5px solid #ede9fe', background: 'white' }}>
                 <button type="button"
-                  className="w-8 h-8 rounded-full flex-shrink-0 flex items-center justify-center transition hover:opacity-80"
+                  className="w-8 h-8 sm:w-8 sm:h-8 w-10 h-10 rounded-full flex-shrink-0 flex items-center justify-center transition hover:opacity-80"
                   style={{ background: 'linear-gradient(135deg, #7c3aed, #a855f7)', color: 'white' }}>
                   <Plus className="w-4 h-4" />
                 </button>
                 <button type="button"
-                  className="w-8 h-8 rounded-full flex-shrink-0 flex items-center justify-center"
+                  className="w-8 h-8 sm:w-8 sm:h-8 w-10 h-10 rounded-full flex-shrink-0 flex items-center justify-center"
                   style={{ background: '#ede9fe', color: '#7c3aed' }}>
                   <Mic className="w-4 h-4" />
                 </button>
@@ -593,11 +593,11 @@ const Chat = () => {
                   value={newMessage}
                   onChange={e => { setNewMessage(e.target.value); handleTyping(); }}
                   placeholder="Type your message..."
-                  className="flex-1 py-1.5 px-2 bg-transparent outline-none text-sm"
+                  className="flex-1 py-1.5 px-2 bg-transparent outline-none text-sm sm:text-sm text-base"
                   style={{ color: '#1f2937' }}
                 />
                 <button type="submit" disabled={!newMessage.trim()}
-                  className="w-9 h-9 rounded-full flex-shrink-0 flex items-center justify-center transition hover:opacity-80 disabled:opacity-40 disabled:cursor-not-allowed"
+                  className="w-9 h-9 sm:w-9 sm:h-9 w-11 h-11 rounded-full flex-shrink-0 flex items-center justify-center transition hover:opacity-80 disabled:opacity-40 disabled:cursor-not-allowed"
                   style={{ background: 'linear-gradient(135deg, #7c3aed, #a855f7)', color: 'white' }}>
                   <Send className="w-4 h-4" />
                 </button>
@@ -629,6 +629,18 @@ const Chat = () => {
         @keyframes fadeIn {
           from { opacity: 0; transform: translateY(6px); }
           to { opacity: 1; transform: translateY(0); }
+        }
+
+        /* Mobile optimisations for chat input */
+        @media (max-width: 640px) {
+          .chat-input-form button {
+            min-width: 44px;
+            min-height: 44px;
+          }
+          .chat-input-form input {
+            font-size: 16px; /* Prevents zoom on focus */
+            min-width: 80px;
+          }
         }
       `}</style>
     </div>
