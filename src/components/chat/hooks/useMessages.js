@@ -1,5 +1,5 @@
 import { useState, useCallback, useRef, useEffect } from 'react';
-import api from '../../../utils/api'; // adjust path if needed
+import api from '../../../utils/api';
 
 export const useMessages = (conversationId) => {
   const [messages, setMessages] = useState([]);
@@ -16,10 +16,25 @@ export const useMessages = (conversationId) => {
         params.before = oldestMessageIdRef.current;
       }
       const res = await api.get(`/chat/${conversationId}`, { params });
-      const newMessages = res.data;
+      let newMessages = res.data;
+
       if (newMessages.length) {
-        oldestMessageIdRef.current = newMessages[0]._id;
-        setMessages(prev => [...newMessages, ...prev]);
+        // Use functional update to get the latest messages and avoid stale closure
+        setMessages(prevMessages => {
+          // Filter out any messages that already exist in the current state
+          const existingIds = new Set(prevMessages.map(m => m._id));
+          const uniqueNewMessages = newMessages.filter(m => !existingIds.has(m._id));
+
+          if (uniqueNewMessages.length) {
+            oldestMessageIdRef.current = uniqueNewMessages[0]._id;
+            // Return unique messages sorted by date (oldest first)
+            const combined = [...prevMessages, ...uniqueNewMessages];
+            // Sort by createdAt to ensure proper order
+            return combined.sort((a, b) => new Date(a.createdAt) - new Date(b.createdAt));
+          }
+          return prevMessages;
+        });
+        
         if (newMessages.length < 20) setHasMore(false);
       } else {
         setHasMore(false);
@@ -41,7 +56,11 @@ export const useMessages = (conversationId) => {
   }, [conversationId]);
 
   const addMessage = (msg) => {
-    setMessages(prev => [...prev, msg]);
+    setMessages(prev => {
+      // Prevent duplicate messages
+      if (prev.some(m => m._id === msg._id)) return prev;
+      return [...prev, msg];
+    });
   };
 
   const updateMessage = (messageId, updates) => {
