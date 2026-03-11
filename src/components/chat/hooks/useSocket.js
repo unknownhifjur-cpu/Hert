@@ -1,8 +1,14 @@
-import { useEffect, useRef } from 'react';
+import { useEffect, useRef, useLayoutEffect } from 'react';
 import io from 'socket.io-client';
 
 export const useSocket = (user, partnerId, callbacks) => {
   const socketRef = useRef(null);
+  const callbacksRef = useRef(callbacks);
+
+  // Update callbacks ref when they change (without triggering reconnection)
+  useLayoutEffect(() => {
+    callbacksRef.current = callbacks;
+  }, [callbacks]);
 
   useEffect(() => {
     if (!user || !partnerId) return;
@@ -19,38 +25,38 @@ export const useSocket = (user, partnerId, callbacks) => {
 
     socket.on('new-message', (msg) => {
       if (msg.sender._id === partnerId || msg.receiver._id === partnerId) {
-        callbacks.onNewMessage?.(msg);
+        callbacksRef.current.onNewMessage?.(msg);
       }
     });
 
     socket.on('message-edited', ({ messageId, newMessage }) => {
-      callbacks.onMessageEdited?.(messageId, { message: newMessage, edited: true });
+      callbacksRef.current.onMessageEdited?.(messageId, { message: newMessage, edited: true });
     });
 
     socket.on('message-deleted', (messageId) => {
-      callbacks.onMessageDeleted?.(messageId);
+      callbacksRef.current.onMessageDeleted?.(messageId);
     });
 
     socket.on('user-online', (onlineUserId) => {
-      if (onlineUserId === partnerId) callbacks.onUserOnline?.(true);
+      if (onlineUserId === partnerId) callbacksRef.current.onUserOnline?.(true);
     });
 
     socket.on('user-offline', (offlineUserId) => {
-      if (offlineUserId === partnerId) callbacks.onUserOnline?.(false);
+      if (offlineUserId === partnerId) callbacksRef.current.onUserOnline?.(false);
     });
 
     socket.on('messages-read', ({ readerId }) => {
-      if (readerId === partnerId) callbacks.onMessagesRead?.(readerId);
+      if (readerId === partnerId) callbacksRef.current.onMessagesRead?.(readerId);
     });
 
     socket.on('user-typing', ({ userId: typingUserId, isTyping }) => {
-      if (typingUserId === partnerId) callbacks.onTyping?.({ userId: typingUserId, isTyping });
+      if (typingUserId === partnerId) callbacksRef.current.onTyping?.({ userId: typingUserId, isTyping });
     });
 
     return () => {
       socket.disconnect();
     };
-  }, [user, partnerId, callbacks]);
+  }, [user, partnerId]);
 
   return socketRef.current;
 };
