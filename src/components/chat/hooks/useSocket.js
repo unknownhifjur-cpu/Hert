@@ -5,7 +5,7 @@ export const useSocket = (user, partnerId, callbacks) => {
   const socketRef = useRef(null);
   const callbacksRef = useRef(callbacks);
 
-  // Update callbacks ref when they change (without triggering reconnection)
+  // Keep callbacks fresh without reconnecting
   useLayoutEffect(() => {
     callbacksRef.current = callbacks;
   }, [callbacks]);
@@ -14,13 +14,31 @@ export const useSocket = (user, partnerId, callbacks) => {
     if (!user || !partnerId) return;
 
     const token = localStorage.getItem('token');
-    const socket = io(import.meta.env.VITE_API_URL, {
+    // Use environment variable or fallback to production backend
+    let backendUrl = import.meta.env.VITE_API_URL || 'https://hert-backend.onrender.com';
+    // Remove any trailing '/api' because socket.io needs the root URL
+    backendUrl = backendUrl.replace(/\/api$/, '');
+
+    const socket = io(backendUrl, {
       auth: { token },
+      transports: ['websocket'], // optional, helps with some hosts
     });
     socketRef.current = socket;
 
     socket.on('connect', () => {
+      console.log('✅ Socket connected with id:', socket.id);
       socket.emit('join-conversation', { partnerId });
+      callbacksRef.current.onConnect?.(); // notify parent
+    });
+
+    socket.on('connect_error', (err) => {
+      console.error('❌ Socket connection error:', err.message);
+      callbacksRef.current.onConnectError?.(err.message);
+    });
+
+    socket.on('disconnect', (reason) => {
+      console.log('🔌 Socket disconnected:', reason);
+      callbacksRef.current.onDisconnect?.(reason);
     });
 
     socket.on('new-message', (msg) => {

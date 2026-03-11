@@ -1,8 +1,9 @@
 import axios from 'axios';
 
-// baseURL can be overridden via VITE_API_URL (e.g. http://localhost:5000/api in dev)
-const defaultBase = 'https://hert-backend.onrender.com/api';
-const baseURL = import.meta.env.VITE_API_URL || defaultBase;
+// Get backend root from env, fallback to production root
+const backendRoot = import.meta.env.VITE_API_URL || 'https://hert-backend.onrender.com';
+// Remove trailing slash if present and append '/api'
+const baseURL = backendRoot.replace(/\/$/, '') + '/api';
 
 const api = axios.create({
   baseURL,

@@ -1,24 +1,45 @@
 import React, { useState, useRef, useEffect } from 'react';
 import { Send, Plus, Mic, Lock, X } from 'lucide-react';
+import api from '../../utils/api'; // ✅ Fixed import path
 
 const MessageInput = ({ socket, userId, partnerNotFound, replyingTo, onReplyCancel, onTyping }) => {
   const [newMessage, setNewMessage] = useState('');
+  const [isSending, setIsSending] = useState(false);
   const inputRef = useRef(null);
 
   useEffect(() => {
     if (userId && inputRef.current) inputRef.current.focus();
   }, [userId]);
 
-  const sendMessage = (e) => {
+  const sendMessage = async (e) => {
     e.preventDefault();
-    if (!newMessage.trim() || !userId || !socket || partnerNotFound) return;
-    socket.emit('send-message', {
-      receiverId: userId,
-      message: newMessage.trim(),
-      replyTo: replyingTo?._id
-    });
-    setNewMessage('');
-    onReplyCancel(); // clear reply
+    if (!newMessage.trim() || !userId || partnerNotFound || isSending) return;
+
+    setIsSending(true);
+    try {
+      // Prefer socket if connected
+      if (socket && socket.connected) {
+        socket.emit('send-message', {
+          receiverId: userId,
+          message: newMessage.trim(),
+          replyTo: replyingTo?._id
+        });
+      } else {
+        // Fallback to REST API
+        await api.post('/chat', {
+          receiverId: userId,
+          message: newMessage.trim(),
+          replyTo: replyingTo?._id
+        });
+      }
+      setNewMessage('');
+      onReplyCancel();
+    } catch (err) {
+      console.error('Failed to send message:', err);
+      alert('Message could not be sent. Please try again.');
+    } finally {
+      setIsSending(false);
+    }
   };
 
   return (
@@ -64,17 +85,21 @@ const MessageInput = ({ socket, userId, partnerNotFound, replyingTo, onReplyCanc
             value={newMessage}
             onChange={(e) => { setNewMessage(e.target.value); onTyping(); }}
             placeholder={partnerNotFound ? "Cannot send messages" : "Type your message..."}
-            disabled={partnerNotFound}
+            disabled={partnerNotFound || isSending}
             className="flex-1 py-1.5 px-2 bg-transparent outline-none text-sm sm:text-sm text-base disabled:text-gray-400"
             style={{ color: '#1f2937' }}
           />
           <button
             type="submit"
-            disabled={!newMessage.trim() || partnerNotFound}
+            disabled={!newMessage.trim() || partnerNotFound || isSending}
             className="w-9 h-9 sm:w-9 sm:h-9 w-11 h-11 rounded-full flex-shrink-0 flex items-center justify-center transition hover:opacity-80 disabled:opacity-40 disabled:cursor-not-allowed"
             style={{ background: 'linear-gradient(135deg, #7c3aed, #a855f7)', color: 'white' }}
           >
-            <Send className="w-4 h-4" />
+            {isSending ? (
+              <div className="w-4 h-4 border-2 border-white border-t-transparent rounded-full animate-spin" />
+            ) : (
+              <Send className="w-4 h-4" />
+            )}
           </button>
         </form>
         <div className="flex items-center justify-center gap-1 mt-2">
